@@ -61,6 +61,23 @@ const docUpload = multer({ storage: docStorage });
 // Initialize Database Engine with Auto-repair capability
 let db = initDB();
 
+// Helper to get device info from User-Agent
+function getDeviceInfo(userAgent) {
+  if (!userAgent) return "Bilinməyən Cihaz";
+  let device = "Masaüstü (Desktop)";
+  if (/mobile/i.test(userAgent)) device = "Mobil (Mobile)";
+  else if (/tablet|ipad/i.test(userAgent)) device = "Planşet (Tablet)";
+  
+  let browser = "Bilinməyən Brauzer";
+  if (/chrome|crios/i.test(userAgent) && !/edge|opr|opios/i.test(userAgent)) browser = "Chrome";
+  else if (/safari/i.test(userAgent) && !/chrome|crios/i.test(userAgent)) browser = "Safari";
+  else if (/firefox|fxios/i.test(userAgent)) browser = "Firefox";
+  else if (/edge|edg/i.test(userAgent)) browser = "Edge";
+  else if (/opr|opera/i.test(userAgent)) browser = "Opera";
+  
+  return `${device} - ${browser}`;
+}
+
 // Helper to record activity logs
 function addActivityLog(user, action, details = "") {
   const newLog = {
@@ -117,7 +134,32 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(403).json({ success: false, message: "Hesabınız deaktiv edilib. Rəhbərliklə əlaqə saxlayın." });
   }
 
-  addActivityLog(user.name, "Sistemə giriş etdi");
+  // Get client IP and Device Info
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  const cleanIp = ip === '::1' ? '127.0.0.1' : ip.replace(/^.*:/, '');
+  const userAgent = req.headers['user-agent'] || '';
+  const deviceInfo = getDeviceInfo(userAgent);
+
+  const loginLog = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    timestamp: new Date().toISOString(),
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    ip: cleanIp,
+    device: deviceInfo
+  };
+
+  if (!db.loginLogs) db.loginLogs = [];
+  db.loginLogs.unshift(loginLog);
+  // Keep last 100 entries to avoid bloating the database
+  if (db.loginLogs.length > 100) {
+    db.loginLogs = db.loginLogs.slice(0, 100);
+  }
+
+  addActivityLog(user.name, "Sistemə giriş etdi", `IP: ${cleanIp} | Cihaz: ${deviceInfo}`);
+  saveDB(db);
+
   return res.json({
     success: true,
     user: {
@@ -127,6 +169,10 @@ app.post('/api/auth/login', (req, res) => {
       role: user.role
     }
   });
+});
+
+app.get('/api/login-logs', (req, res) => {
+  res.json({ success: true, logs: db.loginLogs || [] });
 });
 
 // -------------------------------------------------------------
@@ -395,15 +441,28 @@ app.put('/api/universities/:id', (req, res) => {
   const uni = db.universities.find(u => u.id === req.params.id);
   if (!uni) return res.status(404).json({ success: false, message: "Universitet tapılmadı" });
 
-  const { name, code, startDate, endDate, currentRound } = req.body;
-  if (name) uni.name = name;
-  if (code) uni.code = code;
-  if (startDate) uni.startDate = startDate;
-  if (endDate) uni.endDate = endDate;
-  if (currentRound) uni.currentRound = currentRound;
+  const { name, code, startDate, endDate, currentRound, quotas, location, mapsUrl, rounds } = req.body;
+  if (name !== undefined) uni.name = name;
+  if (code !== undefined) uni.code = code;
+  if (startDate !== undefined) uni.startDate = startDate;
+  if (endDate !== undefined) uni.endDate = endDate;
+  if (currentRound !== undefined) uni.currentRound = currentRound;
+  if (quotas !== undefined) uni.quotas = quotas;
+  if (location !== undefined) uni.location = location;
+  if (mapsUrl !== undefined) uni.mapsUrl = mapsUrl;
+  if (rounds !== undefined && Array.isArray(rounds)) {
+    uni.rounds = rounds;
+    if (rounds.length > 0) {
+      const activeRound = rounds[rounds.length - 1];
+      uni.currentRound = activeRound.roundName;
+      uni.startDate = activeRound.startDate;
+      uni.endDate = activeRound.endDate;
+    }
+  }
 
-  addActivityLog(req.body.operator || "Rəhbərlik", `Universitet məlumatları yeniləndi: ${uni.name}`);
+  addActivityLog(req.body.operator || "Rəhbərlik", `Universitet məlumatları yeniləndi (Takvim): ${uni.name}`);
   saveDB(db);
+  io.emit('dataChanged', { type: 'university', action: 'update', id: uni.id });
   res.json({ success: true, university: uni });
 });
 
@@ -1309,6 +1368,29 @@ app.post('/api/activity', (req, res) => {
   res.json({ success: true });
 });
 
+// -------------------------------------------------------------
+// CHAT MESSAGING API
+// -------------------------------------------------------------
+app.get('/api/chats', (req, res) => {
+  const { username } = req.query;
+  if (!username) return res.status(400).json({ success: false, message: "İstifadəçi adı daxil edilməyib." });
+  
+  if (!db.chats) db.chats = [];
+  const userChats = db.chats.filter(c => c.participants.includes(username));
+  res.json({ success: true, chats: userChats });
+});
+
+app.get('/api/chats/all', (req, res) => {
+  const { code } = req.query;
+  if (code !== '2580') {
+    return res.status(403).json({ success: false, message: "İcazə verilmədi. Yanlış Access Code." });
+  }
+  res.json({ success: true, chats: db.chats || [] });
+});
+
+
+const userSockets = {};
+
 // Socket.IO Connection Handler
 io.on('connection', (socket) => {
   console.log(`✅ Yeni istifadəçi qoşuldu: ${socket.id}`);
@@ -1316,9 +1398,73 @@ io.on('connection', (socket) => {
   // Send current online count to all clients
   io.emit('onlineCount', io.engine.clientsCount);
 
+  // Register user mapping
+  socket.on('registerUser', (username) => {
+    if (!username) return;
+    socket.username = username;
+    if (!userSockets[username]) {
+      userSockets[username] = [];
+    }
+    if (!userSockets[username].includes(socket.id)) {
+      userSockets[username].push(socket.id);
+    }
+    console.log(`Registered: ${username} on socket ${socket.id}`);
+    io.emit('onlineUsers', Object.keys(userSockets).filter(k => userSockets[k].length > 0));
+  });
+
+  // Handle incoming chat message
+  socket.on('sendChatMessage', ({ sender, receiver, text }) => {
+    if (!sender || !receiver || !text) return;
+
+    if (!db.chats) db.chats = [];
+
+    const participants = [sender, receiver].sort();
+    const convId = participants.join('-');
+
+    let conv = db.chats.find(c => c.id === convId);
+    if (!conv) {
+      conv = {
+        id: convId,
+        participants: participants,
+        messages: []
+      };
+      db.chats.push(conv);
+    }
+
+    const newMsg = {
+      sender,
+      receiver,
+      text,
+      timestamp: new Date().toISOString()
+    };
+
+    conv.messages.push(newMsg);
+    saveDB(db);
+
+    // Send back the message to sender and receiver
+    const recipientSockets = userSockets[receiver] || [];
+    const senderSockets = userSockets[sender] || [];
+    const qesemSockets = userSockets['qesem'] || []; // always send to Qeşem if active
+    
+    // Broadcast to all sockets of sender, receiver, and optionally qesem
+    const targets = new Set([...recipientSockets, ...senderSockets, ...qesemSockets]);
+    targets.forEach(socketId => {
+      io.to(socketId).emit('chatMessage', { convId, message: newMsg });
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log(`❌ İstifadəçi ayrıldı: ${socket.id}`);
+    
+    if (socket.username && userSockets[socket.username]) {
+      userSockets[socket.username] = userSockets[socket.username].filter(id => id !== socket.id);
+      if (userSockets[socket.username].length === 0) {
+        delete userSockets[socket.username];
+      }
+    }
+    
     io.emit('onlineCount', io.engine.clientsCount);
+    io.emit('onlineUsers', Object.keys(userSockets).filter(k => userSockets[k].length > 0));
   });
 });
 

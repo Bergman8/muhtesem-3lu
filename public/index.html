@@ -74,6 +74,9 @@
         <button class="nav-item" data-view="universities-view" onclick="switchView('universities-view')">
           <i class="fa-solid fa-university"></i> <span>Üniversitetlər</span>
         </button>
+        <button class="nav-item" data-view="calendar-view" onclick="switchView('calendar-view')">
+          <i class="fa-solid fa-calendar-days"></i> <span>Takvim</span>
+        </button>
         <button class="nav-item" data-view="verification-view" onclick="switchView('verification-view')">
           <i class="fa-solid fa-clipboard-check"></i> <span>Yoxlanış</span>
           <span id="nav-pending-badge" class="badge-count">0</span>
@@ -347,6 +350,84 @@
                 <i class="fa-solid fa-building-columns"></i>
                 <h3>Sol menyudan bir universitet seçin</h3>
                 <p>Universitet paneli və başvuran tələbələrin siyahısı burada görünəcək.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3.1. TAKVİM VIEW -->
+        <section id="calendar-view" class="view-panel">
+          <div class="view-header flex-between">
+            <div>
+              <h3><i class="fa-solid fa-calendar-days"></i> Universitetlərin Başvuru Təqvimi</h3>
+              <p>Universitetlərin başvuru turları, tarixləri, kontenjanları və xəritə mövqeləri</p>
+            </div>
+            <div class="uni-search" style="max-width:320px; width:100%; border: 1px solid rgba(255,255,255,0.08); border-radius:var(--radius-sm); background:rgba(15,23,42,0.4); display:flex; align-items:center; padding:0 12px; height:42px;">
+              <i class="fa-solid fa-magnifying-glass" style="margin-right:8px; opacity:0.6;"></i>
+              <input type="text" id="calendar-search-input" placeholder="Təqvimdə universitet axtarın..." oninput="filterCalendarList()" style="background:none; border:none; color:white; outline:none; font-size:13px; width:100%;">
+            </div>
+          </div>
+
+          <div class="calendar-grid" id="calendar-grid-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px; margin-top:20px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- 3.2. TAKVİM DETAY VIEW -->
+        <section id="calendar-detail-view" class="view-panel">
+          <div class="view-header flex-between" style="border-bottom:1px solid var(--border); padding-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <button class="btn-secondary" onclick="switchView('calendar-view')" style="padding:8px 14px; border-radius:var(--radius-sm); font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-chevron-left"></i> Geri Qayıt
+              </button>
+              <div>
+                <h3 id="cal-detail-name">Universitet Adı</h3>
+                <p id="cal-detail-code">Kod: YOK-XXXX</p>
+              </div>
+            </div>
+            <div id="cal-edit-actions" class="action-buttons">
+              <!-- Rendered dynamically for Afet/Qesem -->
+            </div>
+          </div>
+
+          <div class="cal-detail-layout" style="display:grid; grid-template-columns: 1.2fr 1fr; gap:24px; margin-top:20px; align-items:start;">
+            <!-- Left Info Card -->
+            <div class="panel-box" style="padding:20px;">
+              <h4 style="margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px; color:var(--primary); font-family:var(--font-display);"><i class="fa-solid fa-circle-info"></i> Universitet Məlumatları</h4>
+              
+              <!-- Location Field -->
+              <div class="form-group" style="margin-bottom:18px;">
+                <label style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:6px;">Konum / Ünvan</label>
+                <div id="cal-location-display" style="display:flex; align-items:center; gap:8px;">
+                  <span id="cal-location-text" style="font-weight:500; font-size:14px;">Məlumat yoxdur</span>
+                  <a id="cal-maps-link" href="#" target="_blank" class="btn-secondary" style="padding:4px 8px; font-size:11px; display:inline-flex; align-items:center; gap:4px; text-decoration:none;"><i class="fa-solid fa-map-location-dot"></i> Google Maps</a>
+                </div>
+                <div id="cal-location-edit-box" style="display:none; gap:10px; flex-direction:column; margin-top:8px;">
+                  <input type="text" id="cal-location-input" class="text-input" placeholder="Konum adı və ya ünvan (məs. İstanbul)">
+                  <input type="text" id="cal-maps-url-input" class="text-input" placeholder="Google Maps linki (https://...)">
+                </div>
+              </div>
+
+              <!-- Quotas Field -->
+              <div class="form-group">
+                <label style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:6px;">Kontenjanlar / Proqramlar</label>
+                <div id="cal-quotas-display" style="font-size:13px; color:white; background:rgba(0,0,0,0.2); padding:12px; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); min-height:80px; white-space:pre-wrap;">
+                  Məlumat yoxdur
+                </div>
+                <textarea id="cal-quotas-input" class="text-input" style="display:none; min-height:120px; font-family:monospace; margin-top:8px; line-height:1.5;" placeholder="Kontenjan məlumatlarını yazın... (məs. Tibb - 5 nəfər)"></textarea>
+              </div>
+            </div>
+
+            <!-- Right Rounds Card -->
+            <div class="panel-box" style="padding:20px;">
+              <div class="flex-between" style="margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+                <h4 style="color:var(--primary); font-family:var(--font-display); margin:0;"><i class="fa-solid fa-clock"></i> Başvuru Turları</h4>
+                <button id="cal-add-round-btn" class="btn-primary" style="padding:4px 8px; font-size:11px; display:none;" onclick="addNewRoundForm()"><i class="fa-solid fa-plus"></i> Yeni Tur Əlavə Et</button>
+              </div>
+
+              <!-- Dynamic Rounds List -->
+              <div id="cal-rounds-list-container" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Round Items -->
               </div>
             </div>
           </div>
@@ -632,6 +713,30 @@
                 </thead>
                 <tbody id="recheck-permissions-tbody">
                   <!-- Dynamic recheck overrides rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Login Logs (Qesem Only) -->
+          <div class="panel-box full-width margin-top" style="margin-top: 24px;">
+            <div class="panel-header" style="border-top:none; background:transparent; padding:0 0 12px 0; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+              <h3 style="margin:0;"><i class="fa-solid fa-clock-rotate-left"></i> Son Giriş Logları</h3>
+              <span style="font-size:12px; color:var(--text-muted);">Sistemə daxil olan istifadəçilərin IP ünvanı və cihaz tipləri</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>İstifadəçi</th>
+                    <th>Rol</th>
+                    <th>IP Ünvan</th>
+                    <th>Cihaz / Brauzer</th>
+                    <th>Tarix</th>
+                  </tr>
+                </thead>
+                <tbody id="login-logs-tbody">
+                  <!-- Dynamic login logs rows -->
                 </tbody>
               </table>
             </div>
@@ -1076,6 +1181,55 @@
           <button type="submit" class="btn-primary">Hesabı Yadda Saxla</button>
         </div>
       </form>
+  </div>
+
+  <!-- Floating Chat Panel -->
+  <div id="floating-chat-container" class="floating-chat-container" style="display:none;">
+    <!-- Collapsed state button / header when minimized -->
+    <div id="chat-header" class="chat-header" onclick="toggleChatExpand(event)">
+      <div class="chat-header-title">
+        <i class="fa-solid fa-comments"></i> <span>Chat Mesajlaşma</span> <span id="chat-unread-badge" class="badge-count" style="display:none; background:var(--red); font-size:10px; margin-left:6px; padding:2px 6px;">0</span>
+      </div>
+      <div class="chat-header-actions">
+        <button id="chat-toggle-icon" style="background:none; border:none; color:white; cursor:pointer;"><i class="fa-solid fa-chevron-up"></i></button>
+      </div>
+    </div>
+    
+    <!-- Chat Content (only visible when expanded) -->
+    <div id="chat-content" class="chat-content" style="display:none;">
+      <!-- Active Chats list view -->
+      <div id="chat-users-list" class="chat-users-list">
+        <!-- Qeşem Access Code Input (Only visible to Qesem) -->
+        <div id="qesem-access-code-box" class="qesem-access-code-box" style="display:none; padding:10px; border-bottom:1px solid rgba(255,255,255,0.06); background:rgba(99,102,241,0.03);">
+          <label style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px; font-weight:bold;">ACCESS CODE (GAP):</label>
+          <div style="display:flex; gap:6px;">
+            <input type="password" id="chat-access-code-input" class="text-input" style="padding:4px 8px; font-size:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:4px; flex:1;" placeholder="Kod...">
+            <button type="button" class="btn-primary" style="padding:4px 8px; font-size:11px; background:var(--primary);" onclick="unlockAllChats()">Aç</button>
+          </div>
+          <div id="access-code-status" style="font-size:10px; margin-top:4px; display:none;"></div>
+        </div>
+        <div class="chat-list-header" style="padding:8px 12px; font-size:11px; font-weight:600; color:var(--text-dim); text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.04);">İstifadəçilər</div>
+        <div id="chat-users-scroll" class="chat-users-scroll" style="max-height:220px; overflow-y:auto;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+      
+      <!-- Conversation history view -->
+      <div id="chat-conversation" class="chat-conversation" style="display:none;">
+        <div class="chat-conv-header" style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(30,41,59,0.9); border-bottom:1px solid rgba(255,255,255,0.06);">
+          <button id="chat-back-btn" class="chat-action-btn" style="background:none; border:none; color:white; cursor:pointer;" onclick="exitActiveChat()"><i class="fa-solid fa-chevron-left"></i></button>
+          <span id="chat-active-user-name" style="font-weight:600; font-size:13px;">Rəvan</span>
+          <button id="chat-close-conv-btn" class="chat-action-btn" style="background:none; border:none; color:white; cursor:pointer;" onclick="exitActiveChat()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="chat-messages-list" class="chat-messages-list" style="height:180px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;">
+          <!-- Messages -->
+        </div>
+        <form id="chat-send-form" class="chat-send-form" onsubmit="sendChatMessage(event)" style="display:flex; border-top:1px solid rgba(255,255,255,0.06); background:rgba(15,23,42,0.4);">
+          <input type="text" id="chat-message-input" placeholder="Mesaj yazın..." autocomplete="off" style="flex:1; background:none; border:none; color:white; padding:10px; font-size:12px; outline:none;">
+          <button type="submit" style="background:none; border:none; color:var(--primary); padding:0 12px; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <div id="toast-container" class="toast-container"></div>

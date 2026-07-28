@@ -153,12 +153,19 @@ const DEFAULT_USERS = [
 function createDefaultData() {
   return {
     users: DEFAULT_USERS,
-    universities: INITIAL_UNIVERSITIES,
+    universities: INITIAL_UNIVERSITIES.map(u => ({
+      ...u,
+      quotas: "",
+      location: "",
+      mapsUrl: ""
+    })),
     students: [],
     applications: [],
     verifications: [],
     books: [],
     sales: [],
+    chats: [],
+    loginLogs: [],
     activityLogs: [
       {
         id: `log-${Date.now()}`,
@@ -187,6 +194,20 @@ function initDB() {
       const raw = fs.readFileSync(DB_FILE, 'utf8');
       const parsed = JSON.parse(raw);
       if (validateDB(parsed)) {
+        // Migration: Ensure new arrays exist
+        if (!parsed.loginLogs) parsed.loginLogs = [];
+        if (!parsed.chats) parsed.chats = [];
+        
+        // Migration: Ensure universities have new fields
+        parsed.universities = parsed.universities.map(u => {
+          return {
+            ...u,
+            quotas: u.quotas !== undefined ? u.quotas : "",
+            location: u.location !== undefined ? u.location : "",
+            mapsUrl: u.mapsUrl !== undefined ? u.mapsUrl : ""
+          };
+        });
+
         console.log("Database file successfully validated.");
         return parsed;
       } else {
@@ -210,6 +231,21 @@ function initDB() {
       if (validateDB(parsed)) {
         console.log(`Auto-repair: Restored database from snapshot ${file}`);
         parsed.lastAutoRepair = new Date().toISOString();
+        
+        // Migration: Ensure new arrays exist
+        if (!parsed.loginLogs) parsed.loginLogs = [];
+        if (!parsed.chats) parsed.chats = [];
+        
+        // Migration: Ensure universities have new fields
+        parsed.universities = parsed.universities.map(u => {
+          return {
+            ...u,
+            quotas: u.quotas !== undefined ? u.quotas : "",
+            location: u.location !== undefined ? u.location : "",
+            mapsUrl: u.mapsUrl !== undefined ? u.mapsUrl : ""
+          };
+        });
+
         parsed.activityLogs.unshift({
           id: `log-${Date.now()}`,
           timestamp: new Date().toISOString(),

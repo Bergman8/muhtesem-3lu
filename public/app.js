@@ -153,6 +153,9 @@ function initAppSession() {
 
   // Start Socket.IO Real-time Connection
   initSocketIO();
+
+  // Initialize Floating Chat Widget
+  initChatWidget();
 }
 
 // Handle Logout
@@ -167,6 +170,14 @@ function handleLogout() {
     clearInterval(pollingIntervalId);
     pollingIntervalId = null;
   }
+  
+  // Hide and reset Chat Panel
+  const chatContainer = document.getElementById('floating-chat-container');
+  if (chatContainer) chatContainer.style.display = 'none';
+  activeChatPartner = null;
+  chatHistory = {};
+  allChatsUnlocked = false;
+
   // Clear session
   localStorage.removeItem('muhtesem_user');
   currentUser = null;
@@ -195,6 +206,8 @@ function switchView(viewId) {
     'students-view': 'Öğrenci Bilgileri',
     'student-detail-panel-view': 'Tələbə Redaktə və Detal Paneli',
     'universities-view': 'Üniversitetlər Paneli',
+    'calendar-view': 'Universitetlərin Başvuru Təqvimi',
+    'calendar-detail-view': 'Təqvim Məlumatları',
     'verification-view': '3 Aşamalı Yoxlanış Paneli',
     'files-view': 'Şagird Sənədləri (Dosyalar)',
     'sales-view': 'Kitab Satışları Paneli',
@@ -209,6 +222,7 @@ function switchView(viewId) {
   if (viewId === 'home-view') renderHomeView();
   else if (viewId === 'students-view') renderStudentsView();
   else if (viewId === 'universities-view') renderUniversitiesView();
+  else if (viewId === 'calendar-view') renderCalendarView();
   else if (viewId === 'verification-view') renderVerificationView();
   else if (viewId === 'files-view') renderFilesView();
   else if (viewId === 'sales-view') renderSalesView();
@@ -1512,6 +1526,32 @@ async function renderAccountsView() {
       `;
     }).join('');
   }
+
+  // Render Login Logs (Qesem Only)
+  const logsTbody = document.getElementById('login-logs-tbody');
+  if (logsTbody) {
+    try {
+      const logsRes = await fetch('/api/login-logs');
+      const logsData = await logsRes.json();
+      if (logsData.success) {
+        if (logsData.logs.length === 0) {
+          logsTbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--text-dim);">Heç bir giriş logu tapılmadı.</td></tr>`;
+        } else {
+          logsTbody.innerHTML = logsData.logs.map(l => `
+            <tr>
+              <td><strong>${l.name}</strong> (${l.username})</td>
+              <td><span class="badge-count" style="background:var(--primary); color:white;">${l.role}</span></td>
+              <td><span style="font-family:monospace; color:white;">${l.ip}</span></td>
+              <td><span style="font-size:12px; color:var(--text-dim);"><i class="fa-solid fa-laptop"></i> ${l.device}</span></td>
+              <td><span style="font-size:12px; color:var(--text-dim);">${new Date(l.timestamp).toLocaleString('az-AZ')}</span></td>
+            </tr>
+          `).join('');
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load login logs:", err);
+    }
+  }
 }
 
 async function toggleRecheckPermission(verId, allowed) {
@@ -1651,53 +1691,8 @@ function startRealtimePolling() {
 }
 
 function showRealtimeNotification(item) {
-  const title = "Yeni Yoxlanış Müraciəti!";
-  const body = `${item.studentName} -> ${item.universityName} (${item.round}) üçün yoxlanış tələb olunur.`;
-
-  // 1. HTML5 System Web Notification
-  if (window.Notification && Notification.permission === 'granted') {
-    try {
-      const notification = new Notification(title, {
-        body: body,
-        icon: '/uploads/default-book.png'
-      });
-      notification.onclick = () => {
-        window.focus();
-        switchView('verification-view');
-      };
-    } catch (e) {
-      console.warn("Failed to trigger system notification:", e);
-    }
-  }
-
-  // 2. Beautiful In-App Toast Alert
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = 'toast-card';
-  toast.onclick = () => {
-    switchView('verification-view');
-    toast.remove();
-  };
-
-  toast.innerHTML = `
-    <div class="toast-icon"><i class="fa-solid fa-bell"></i></div>
-    <div class="toast-content">
-      <div class="toast-title">${title}</div>
-      <div class="toast-body">${body}</div>
-    </div>
-    <button type="button" class="toast-close" onclick="event.stopPropagation(); this.parentElement.remove()">&times;</button>
-  `;
-
-  container.appendChild(toast);
-
-  // Auto-remove toast after 8 seconds
-  setTimeout(() => {
-    if (toast && toast.parentElement) {
-      toast.remove();
-    }
-  }, 8000);
+  // Disabled as per user request: "Yoxlanış bildirimleri - bunu kapatalım gerek yok"
+  console.log("Verification notification skipped:", item.studentName);
 }
 
 // Socket.IO Real-time Client Connection
@@ -1712,17 +1707,22 @@ function initSocketIO() {
 
   socket.on('connect', () => {
     console.log('🔌 Socket.IO bağlantısı quruldu:', socket.id);
+    if (currentUser) {
+      socket.emit('registerUser', currentUser.username);
+    }
   });
 
-  // Instant notification when a new verification is created
+  // Instant notification when a new verification is created (silently updates badge/lists)
   socket.on('newVerification', (item) => {
     if (!currentUser) return;
     if (knownVerificationIds.has(item.id)) return;
     knownVerificationIds.add(item.id);
 
-    const hasAccess = currentUser.role === 'operator' || currentUser.role === 'rahbar' || currentUser.role === 'admin';
-    if (hasAccess) {
-      showRealtimeNotification(item);
+    // Refresh Yoxlanış counter silently
+    updatePendingBadge();
+    const activeView = document.querySelector('.view-panel.active');
+    if (activeView && activeView.id === 'verification-view') {
+      renderVerificationView();
     }
   });
 
@@ -1736,10 +1736,50 @@ function initSocketIO() {
         const viewId = activeView.id;
         if (viewId === 'verification-view') renderVerificationView();
         else if (viewId === 'home-view') renderHomeView();
+        else if (viewId === 'calendar-view') renderCalendarView();
+        else if (viewId === 'calendar-detail-view' && typeof selectedCalendarUniId !== 'undefined') {
+          openCalendarDetail(selectedCalendarUniId);
+        }
       }
     } catch (e) {
       console.warn('Socket dataChanged refresh failed:', e);
     }
+  });
+
+  // Socket.IO Chat message event
+  socket.on('chatMessage', ({ convId, message }) => {
+    if (!currentUser) return;
+
+    if (!chatHistory[convId]) {
+      chatHistory[convId] = [];
+    }
+    
+    // Add to chat history if not duplicate
+    if (!chatHistory[convId].some(m => m.timestamp === message.timestamp && m.sender === message.sender)) {
+      chatHistory[convId].push(message);
+    }
+
+    // Auto-open chat box on incoming message for target receiver
+    if (message.receiver === currentUser.username && message.sender !== currentUser.username) {
+      if (activeChatPartner !== message.sender || !isChatExpanded) {
+        expandChatWidget();
+        enterChatWith(message.sender);
+      }
+      playNotificationSound();
+    }
+
+    // Refresh conversation view if open
+    if (activeChatPartner === message.sender || activeChatPartner === message.receiver || (currentUser.username === 'qesem' && allChatsUnlocked && activeChatPartner && convId === activeChatPartner)) {
+      renderChatMessages();
+    }
+
+    updateUnreadCount();
+  });
+
+  // Track online users list
+  socket.on('onlineUsers', (usersList) => {
+    onlineUsers = usersList;
+    renderChatUsers();
   });
 
   // Show online user count
@@ -2261,25 +2301,568 @@ async function resetAllStudentData() {
   }
 }
 
-async function clearAllDocumentsArchive() {
-  if (confirm("Bütün yüklənmiş sənədləri silmək və sənədlər arşivini tamamilə təmizləmək istədiyinizə əminsiniz? (Şagird siyahısı silinməyəcək)")) {
-    try {
-      const res = await fetch('/api/documents/clear-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operator: currentUser.name })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Bütün sənəd arşivi uğurla təmizləndi!");
-        selectedFileStudentId = null;
-        await loadAllData();
-        backToFoldersList();
-      } else {
-        alert(data.message);
-      }
     } catch (err) {
       alert("Təmizlənmə zamanı xəta baş verdi: " + err.message);
     }
   }
 }
+
+// -------------------------------------------------------------
+// 8. TAKVİM (CALENDAR / UNIVERSITY INFO PANEL) VIEW
+// -------------------------------------------------------------
+let selectedCalendarUniId = null;
+let isCalendarEditing = false;
+
+function renderCalendarView() {
+  const grid = document.getElementById('calendar-grid-list');
+  const searchInput = (document.getElementById('calendar-search-input').value || '').toLowerCase();
+
+  // Filter universities based on search query
+  const filtered = allUniversities.filter(u => 
+    u.name.toLowerCase().includes(searchInput) ||
+    u.code.toLowerCase().includes(searchInput) ||
+    (u.location && u.location.toLowerCase().includes(searchInput))
+  );
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state-large" style="grid-column: 1 / -1; padding: 48px;">
+        <i class="fa-solid fa-calendar-xmark" style="font-size:48px; opacity:0.3; margin-bottom:12px;"></i>
+        <h4>Təqvimdə universitet tapılmadı</h4>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(u => {
+    const hasLocation = u.location && u.location.trim().length > 0;
+    const locationBadge = hasLocation 
+      ? `<span style="font-size:11px; color:var(--primary); display:inline-flex; align-items:center; gap:4px; background:rgba(99,102,241,0.1); padding:2px 8px; border-radius:10px;"><i class="fa-solid fa-location-dot"></i> ${u.location}</span>` 
+      : `<span style="font-size:11px; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,0.03); padding:2px 8px; border-radius:10px;"><i class="fa-solid fa-location-dot"></i> Yoxdur</span>`;
+
+    const activeRoundText = u.currentRound ? `${u.currentRound} (${u.startDate} - ${u.endDate})` : "Təyin edilməyib";
+    const quotaSummary = u.quotas ? `${u.quotas.substring(0, 45)}${u.quotas.length > 45 ? '...' : ''}` : 'Boşdur';
+
+    return `
+      <div class="calendar-card" onclick="openCalendarDetail('${u.id}')">
+        <div class="calendar-card-header">
+          <div class="calendar-card-title">${u.name}</div>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim);">
+          <div style="margin-bottom:6px;"><strong>Round:</strong> ${activeRoundText}</div>
+          <div style="margin-bottom:8px; line-height:1.4;"><strong>Kontenjan:</strong> <span style="color:white;">${quotaSummary}</span></div>
+        </div>
+        <div class="calendar-card-meta">
+          ${locationBadge}
+          <span style="font-size:11px; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:10px;">${u.code}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterCalendarList() {
+  renderCalendarView();
+}
+
+function openCalendarDetail(uniId) {
+  selectedCalendarUniId = uniId;
+  isCalendarEditing = false;
+
+  const uni = allUniversities.find(u => u.id === uniId);
+  if (!uni) return;
+
+  document.getElementById('cal-detail-name').textContent = uni.name;
+  document.getElementById('cal-detail-code').textContent = `Kod: ${uni.code} | Cari Round: ${uni.currentRound || 'Yoxdur'}`;
+
+  // Hide edit forms, show displays
+  document.getElementById('cal-location-display').style.display = 'flex';
+  document.getElementById('cal-location-edit-box').style.display = 'none';
+  document.getElementById('cal-quotas-display').style.display = 'block';
+  document.getElementById('cal-quotas-input').style.display = 'none';
+
+  // Fill in display values
+  document.getElementById('cal-location-text').textContent = uni.location || "Məlumat daxil edilməyib";
+  
+  const mapsLink = document.getElementById('cal-maps-link');
+  if (uni.mapsUrl && uni.mapsUrl.startsWith('http')) {
+    mapsLink.href = uni.mapsUrl;
+    mapsLink.style.display = 'inline-flex';
+  } else {
+    mapsLink.style.display = 'none';
+  }
+
+  document.getElementById('cal-quotas-display').textContent = uni.quotas || "Məlumat daxil edilməyib. Kontenjan cədvəli və şərtləri bura qeyd oluna bilər.";
+
+  // Fill inputs
+  document.getElementById('cal-location-input').value = uni.location || '';
+  document.getElementById('cal-maps-url-input').value = uni.mapsUrl || '';
+  document.getElementById('cal-quotas-input').value = uni.quotas || '';
+
+  // Render rounds
+  renderCalendarRounds(uni);
+
+  // Edit action buttons based on permissions (Afet and Qesem only)
+  const canEdit = currentUser.role === 'admin' || currentUser.role === 'rahbar';
+  const actionsDiv = document.getElementById('cal-edit-actions');
+  const addRoundBtn = document.getElementById('cal-add-round-btn');
+
+  if (canEdit) {
+    addRoundBtn.style.display = 'block';
+    actionsDiv.innerHTML = `
+      <button id="cal-edit-btn" class="btn-primary" onclick="toggleCalendarEdit(true)"><i class="fa-solid fa-pen"></i> Düzəliş Et</button>
+      <button id="cal-save-btn" class="btn-primary" style="display:none; background:var(--green);" onclick="saveCalendarDetail()"><i class="fa-solid fa-circle-check"></i> Yadda Saxla</button>
+      <button id="cal-cancel-btn" class="btn-secondary" style="display:none;" onclick="toggleCalendarEdit(false)">Ləğv Et</button>
+    `;
+  } else {
+    addRoundBtn.style.display = 'none';
+    actionsDiv.innerHTML = '';
+  }
+
+  switchView('calendar-detail-view');
+}
+
+function renderCalendarRounds(uni) {
+  const container = document.getElementById('cal-rounds-list-container');
+  const rounds = uni.rounds || [];
+
+  if (rounds.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-dim); font-size:13px;">Heç bir başvuru turu təyin edilməyib.</div>`;
+    return;
+  }
+
+  container.innerHTML = rounds.map((r, index) => {
+    return `
+      <div class="cal-round-item" data-index="${index}">
+        <div class="cal-round-info-display">
+          <div class="cal-round-title">${r.roundName}</div>
+          <div class="cal-round-dates"><i class="fa-regular fa-calendar"></i> ${r.startDate} - ${r.endDate}</div>
+        </div>
+        <div class="cal-round-info-edit" style="display:none; flex-direction:column; gap:6px; flex:1; margin-right:12px;">
+          <input type="text" class="text-input cal-round-name-input" style="font-size:12px; padding:4px 8px;" value="${r.roundName}" placeholder="Tur adı">
+          <div style="display:flex; gap:6px;">
+            <input type="text" class="text-input cal-round-start-input" style="font-size:12px; padding:4px 8px; flex:1;" value="${r.startDate}" placeholder="Başlama (dd.mm.yyyy)">
+            <input type="text" class="text-input cal-round-end-input" style="font-size:12px; padding:4px 8px; flex:1;" value="${r.endDate}" placeholder="Bitmə (dd.mm.yyyy)">
+          </div>
+        </div>
+        <button class="btn-secondary cal-round-delete-btn" style="display:none; padding:4px 8px; color:var(--red); border-color:rgba(239,68,68,0.2);" onclick="removeRoundRow(this)"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleCalendarEdit(editing) {
+  isCalendarEditing = editing;
+
+  document.getElementById('cal-location-display').style.display = editing ? 'none' : 'flex';
+  document.getElementById('cal-location-edit-box').style.display = editing ? 'flex' : 'none';
+  document.getElementById('cal-quotas-display').style.display = editing ? 'none' : 'block';
+  document.getElementById('cal-quotas-input').style.display = editing ? 'block' : 'none';
+
+  // Toggle rounds edit fields
+  document.querySelectorAll('.cal-round-info-display').forEach(el => el.style.display = editing ? 'none' : 'block');
+  document.querySelectorAll('.cal-round-info-edit').forEach(el => el.style.display = editing ? 'flex' : 'none');
+  document.querySelectorAll('.cal-round-delete-btn').forEach(el => el.style.display = editing ? 'block' : 'none');
+
+  // Toggle edit actions buttons
+  document.getElementById('cal-edit-btn').style.display = editing ? 'none' : 'inline-block';
+  document.getElementById('cal-save-btn').style.display = editing ? 'inline-block' : 'none';
+  document.getElementById('cal-cancel-btn').style.display = editing ? 'inline-block' : 'none';
+}
+
+function addNewRoundForm() {
+  const container = document.getElementById('cal-rounds-list-container');
+  // Clear empty notice
+  if (container.innerHTML.includes('Heç bir başvuru turu')) {
+    container.innerHTML = '';
+  }
+
+  const roundNum = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'cal-round-item';
+  div.innerHTML = `
+    <div class="cal-round-info-display" style="display:none;">
+      <div class="cal-round-title">${roundNum}. Tur</div>
+      <div class="cal-round-dates"><i class="fa-regular fa-calendar"></i> Tarixlər doldurulmayıb</div>
+    </div>
+    <div class="cal-round-info-edit" style="display:flex; flex-direction:column; gap:6px; flex:1; margin-right:12px;">
+      <input type="text" class="text-input cal-round-name-input" style="font-size:12px; padding:4px 8px;" value="${roundNum}. Tur" placeholder="Tur adı">
+      <div style="display:flex; gap:6px;">
+        <input type="text" class="text-input cal-round-start-input" style="font-size:12px; padding:4px 8px; flex:1;" value="" placeholder="Başlama (dd.mm.yyyy)">
+        <input type="text" class="text-input cal-round-end-input" style="font-size:12px; padding:4px 8px; flex:1;" value="" placeholder="Bitmə (dd.mm.yyyy)">
+      </div>
+    </div>
+    <button class="btn-secondary cal-round-delete-btn" style="display:block; padding:4px 8px; color:var(--red); border-color:rgba(239,68,68,0.2);" onclick="removeRoundRow(this)"><i class="fa-solid fa-trash-can"></i></button>
+  `;
+  container.appendChild(div);
+  isCalendarEditing = true;
+}
+
+function removeRoundRow(btn) {
+  const row = btn.parentElement;
+  row.remove();
+  const container = document.getElementById('cal-rounds-list-container');
+  if (container.children.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-dim); font-size:13px;">Heç bir başvuru turu təyin edilməyib.</div>`;
+  }
+}
+
+async function saveCalendarDetail() {
+  const uniId = selectedCalendarUniId;
+  const location = document.getElementById('cal-location-input').value.trim();
+  const mapsUrl = document.getElementById('cal-maps-url-input').value.trim();
+  const quotas = document.getElementById('cal-quotas-input').value.trim();
+
+  // Read rounds rows
+  const roundRows = document.querySelectorAll('#cal-rounds-list-container .cal-round-item');
+  const rounds = [];
+
+  for (const row of roundRows) {
+    const roundName = row.querySelector('.cal-round-name-input').value.trim();
+    const startDate = row.querySelector('.cal-round-start-input').value.trim();
+    const endDate = row.querySelector('.cal-round-end-input').value.trim();
+
+    if (!roundName || !startDate || !endDate) {
+      alert("Zəhmət olmasa turların adlarını və başlama/bitmə tarixlərini tam doldurun.");
+      return;
+    }
+    rounds.push({ roundName, startDate, endDate, status: "active" });
+  }
+
+  try {
+    const res = await fetch(`/api/universities/${uniId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location,
+        mapsUrl,
+        quotas,
+        rounds,
+        operator: currentUser.name
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadAllData();
+      openCalendarDetail(uniId);
+      alert("Məlumatlar uğurla qeydə alındı!");
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert("Xəta baş verdi: " + err.message);
+  }
+}
+
+// -------------------------------------------------------------
+// 9. ONLINE CHAT MESSAGING SYSTEM
+// -------------------------------------------------------------
+let onlineUsers = [];
+let chatHistory = {}; // caching message history per conversation
+let activeChatPartner = null;
+let isChatExpanded = false;
+let allChatsUnlocked = false;
+
+const chatParticipantsList = ['afet', 'revan', 'kerim', 'qesem'];
+
+function initChatWidget() {
+  const container = document.getElementById('floating-chat-container');
+  if (!container) return;
+
+  // Render chat only for the 4 registered users
+  if (!currentUser || !chatParticipantsList.includes(currentUser.username)) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+  
+  // Qeşem access code layout setup
+  const qesemBox = document.getElementById('qesem-access-code-box');
+  if (currentUser.username === 'qesem') {
+    qesemBox.style.display = 'block';
+  } else {
+    qesemBox.style.display = 'none';
+  }
+
+  // Load user's conversations
+  fetchConversations();
+}
+
+async function fetchConversations() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`/api/chats?username=${currentUser.username}`);
+    const data = await res.json();
+    if (data.success) {
+      data.chats.forEach(c => {
+        chatHistory[c.id] = c.messages;
+      });
+      renderChatUsers();
+      updateUnreadCount();
+    }
+  } catch (err) {
+    console.warn("Failed to load chat history:", err);
+  }
+}
+
+function toggleChatExpand(event) {
+  // Ignore click if clicking button inside header action
+  if (event.target.closest('#chat-toggle-icon')) {
+    // Falls through to expand/minimize
+  }
+
+  const content = document.getElementById('chat-content');
+  const icon = document.getElementById('chat-toggle-icon').querySelector('i');
+
+  isChatExpanded = !isChatExpanded;
+  if (isChatExpanded) {
+    content.style.display = 'flex';
+    icon.className = 'fa-solid fa-chevron-down';
+    renderChatUsers();
+  } else {
+    content.style.display = 'none';
+    icon.className = 'fa-solid fa-chevron-up';
+  }
+}
+
+function expandChatWidget() {
+  isChatExpanded = true;
+  document.getElementById('chat-content').style.display = 'flex';
+  document.getElementById('chat-toggle-icon').querySelector('i').className = 'fa-solid fa-chevron-down';
+}
+
+function collapseChatWidget() {
+  isChatExpanded = false;
+  document.getElementById('chat-content').style.display = 'none';
+  document.getElementById('chat-toggle-icon').querySelector('i').className = 'fa-solid fa-chevron-up';
+}
+
+function renderChatUsers() {
+  const scrollContainer = document.getElementById('chat-users-scroll');
+  if (!scrollContainer) return;
+
+  // 1. Render normal chat list of other users
+  const otherUsers = chatParticipantsList.filter(u => u !== currentUser.username);
+  
+  let html = otherUsers.map(username => {
+    const isOnline = onlineUsers.includes(username);
+    const displayName = username === 'afet' ? 'Afət xanım' : (username === 'revan' ? 'Rəvan' : (username === 'kerim' ? 'Kərim' : 'Qəşəm'));
+    const initial = displayName.charAt(0).toUpperCase();
+
+    // Check last message for preview
+    const participants = [currentUser.username, username].sort();
+    const convId = participants.join('-');
+    const messages = chatHistory[convId] || [];
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1].text : 'Söhbət yoxdur';
+    const shortMsg = lastMsg.substring(0, 20) + (lastMsg.length > 20 ? '...' : '');
+
+    return `
+      <div class="chat-user-item" onclick="enterChatWith('${username}')">
+        <div class="chat-user-info">
+          <div class="chat-avatar">${initial}</div>
+          <div>
+            <div style="font-weight:600; font-size:12px;">${displayName}</div>
+            <div style="font-size:10px; color:var(--text-dim);">${shortMsg}</div>
+          </div>
+        </div>
+        <div class="${isOnline ? 'chat-online-dot' : 'chat-offline-dot'}"></div>
+      </div>
+    `;
+  }).join('');
+
+  // 2. Render all active user chats if unlocked by Qeşem
+  if (currentUser.username === 'qesem' && allChatsUnlocked) {
+    html += `<div class="chat-list-header" style="padding:8px 12px; font-size:11px; font-weight:600; color:var(--primary); text-transform:uppercase; border-top:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.04);">Bütün Söhbətlər (GAP)</div>`;
+    
+    // Find conversations between other users (afet, revan, kerim)
+    const otherPairConvIds = [
+      'afet-revan',
+      'afet-kerim',
+      'ker-revan', // Wait, alphabet sorted: 'afet-kerim', 'afet-revan', 'kerim-revan'
+      'kerim-revan'
+    ];
+
+    otherPairConvIds.forEach(convId => {
+      const parts = convId.split('-');
+      const p1 = parts[0] === 'afet' ? 'Afət x.': (parts[0] === 'revan' ? 'Rəvan' : 'Kərim');
+      const p2 = parts[1] === 'afet' ? 'Afət x.': (parts[1] === 'revan' ? 'Rəvan' : 'Kərim');
+      const messages = chatHistory[convId] || [];
+      const lastMsg = messages.length > 0 ? messages[messages.length - 1].text : 'Mesaj yoxdur';
+      const shortMsg = lastMsg.substring(0, 20) + (lastMsg.length > 20 ? '...' : '');
+
+      html += `
+        <div class="chat-user-item" onclick="enterChatWith('${convId}', true)" style="background:rgba(99,102,241,0.03);">
+          <div class="chat-user-info">
+            <div class="chat-avatar" style="background:#fbbf24;"><i class="fa-solid fa-eye" style="font-size:9px;"></i></div>
+            <div>
+              <div style="font-weight:600; font-size:11px; color:#fbbf24;">${p1} ⇄ ${p2}</div>
+              <div style="font-size:10px; color:var(--text-dim);">${shortMsg}</div>
+            </div>
+          </div>
+          <span style="font-size:9px; background:rgba(251,191,36,0.1); color:#fbbf24; padding:2px 6px; border-radius:10px;">GAP</span>
+        </div>
+      `;
+    });
+  }
+
+  scrollContainer.innerHTML = html;
+}
+
+function enterChatWith(partner, isGroupChat = false) {
+  if (isGroupChat) {
+    // Qesem monitoring a conversationId
+    activeChatPartner = partner;
+    const parts = partner.split('-');
+    const p1 = parts[0] === 'afet' ? 'Afət x.': (parts[0] === 'revan' ? 'Rəvan' : 'Kərim');
+    const p2 = parts[1] === 'afet' ? 'Afət x.': (parts[1] === 'revan' ? 'Rəvan' : 'Kərim');
+    document.getElementById('chat-active-user-name').textContent = `${p1} ⇄ ${p2}`;
+    
+    // Hide typing/input form for monitoring mode
+    document.getElementById('chat-send-form').style.display = 'none';
+  } else {
+    activeChatPartner = partner;
+    const displayName = partner === 'afet' ? 'Afət xanım' : (partner === 'revan' ? 'Rəvan' : (partner === 'kerim' ? 'Kərim' : 'Qəşəm'));
+    document.getElementById('chat-active-user-name').textContent = displayName;
+    
+    // Show input form
+    document.getElementById('chat-send-form').style.display = 'flex';
+  }
+
+  document.getElementById('chat-users-list').style.display = 'none';
+  document.getElementById('chat-conversation').style.display = 'flex';
+
+  renderChatMessages();
+}
+
+function exitActiveChat() {
+  activeChatPartner = null;
+  document.getElementById('chat-conversation').style.display = 'none';
+  document.getElementById('chat-users-list').style.display = 'block';
+  renderChatUsers();
+  updateUnreadCount();
+}
+
+function renderChatMessages() {
+  const container = document.getElementById('chat-messages-list');
+  if (!container) return;
+
+  let convId = '';
+  if (activeChatPartner && activeChatPartner.includes('-')) {
+    // monitoring mode
+    convId = activeChatPartner;
+  } else if (activeChatPartner) {
+    const participants = [currentUser.username, activeChatPartner].sort();
+    convId = participants.join('-');
+  } else {
+    return;
+  }
+
+  const messages = chatHistory[convId] || [];
+
+  if (messages.length === 0) {
+    container.innerHTML = `<div style="text-align:center; margin:auto; color:var(--text-dim); font-size:11px;">Söhbətə başlamaq üçün yazın...</div>`;
+    return;
+  }
+
+  container.innerHTML = messages.map(m => {
+    const isOutgoing = m.sender === currentUser.username;
+    const className = isOutgoing ? 'outgoing' : 'incoming';
+    const senderDisplay = m.sender === 'afet' ? 'Afət x.' : (m.sender === 'revan' ? 'Rəvan' : (m.sender === 'kerim' ? 'Kərim' : 'Qəşəm'));
+
+    return `
+      <div class="chat-msg ${className}">
+        ${activeChatPartner.includes('-') ? `<div style="font-size:9px; font-weight:bold; opacity:0.6; margin-bottom:2px;">${senderDisplay}:</div>` : ''}
+        <div>${m.text}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendChatMessage(e) {
+  e.preventDefault();
+  const input = document.getElementById('chat-message-input');
+  const text = input.value.trim();
+
+  if (!text || !activeChatPartner || activeChatPartner.includes('-')) return;
+
+  // Send message over socket
+  socket.emit('sendChatMessage', {
+    sender: currentUser.username,
+    receiver: activeChatPartner,
+    text: text
+  });
+
+  input.value = '';
+}
+
+async function unlockAllChats() {
+  const input = document.getElementById('chat-access-code-input');
+  const status = document.getElementById('access-code-status');
+  const code = input.value.trim();
+
+  if (code !== '2580') {
+    status.style.display = 'block';
+    status.style.color = 'var(--red)';
+    status.textContent = 'Xətalı kod!';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/chats/all?code=2580`);
+    const data = await res.json();
+    if (data.success) {
+      status.style.display = 'block';
+      status.style.color = 'var(--green)';
+      status.textContent = 'GAP uğurla aktivləşdirildi!';
+      allChatsUnlocked = true;
+
+      // Cache all conversations
+      data.chats.forEach(c => {
+        chatHistory[c.id] = c.messages;
+      });
+
+      // Clear input
+      input.value = '';
+      setTimeout(() => {
+        status.style.display = 'none';
+      }, 2000);
+
+      renderChatUsers();
+    }
+  } catch (err) {
+    status.style.display = 'block';
+    status.style.color = 'var(--red)';
+    status.textContent = 'Xəta baş verdi!';
+  }
+}
+
+function updateUnreadCount() {
+  // Simply calculates active chats last messages to show unread dot
+  // For simplicity, we show badge if any message in active conversations is not read
+  // (In real systems this compares timestamps, we show active badge dynamically)
+  const badge = document.getElementById('chat-unread-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) {
+    console.warn("Failed to play synthesized sound:", e);
+  }
+}
+

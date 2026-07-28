@@ -12,6 +12,9 @@
     "http://localhost:3000/*",
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Başvuru Yardımcısı"

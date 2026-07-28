@@ -1,5 +1,5 @@
-// ⚙️ Railway-a deploy edəndə bu URL-i dəyişdirin, məs: 'https://muhtesem3lu.up.railway.app/api'
-const API_BASE = 'muhtesem-3lu-production.up.railway.app';
+// ⚙️ Railway API URL
+const API_BASE = 'https://muhtesem-3lu-production.up.railway.app/api';
 
 let allStudents = [];
 let allUniversities = [];
@@ -125,15 +125,15 @@ async function startSession() {
 
   await chrome.storage.local.set({ activeSession });
 
-  // Notify content scripts about the new session
+  // Notify content scripts about the new session in all tabs
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, {
+    const tabs = await chrome.tabs.query({});
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, {
         type: 'SESSION_STARTED',
         session: activeSession
       }).catch(() => { });
-    }
+    });
   } catch (e) { /* ignore */ }
 
   showActiveView();
@@ -231,12 +231,12 @@ async function clearSession() {
   activeSession = null;
   await chrome.storage.local.remove('activeSession');
 
-  // Notify content scripts
+  // Notify content scripts in all tabs
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'SESSION_ENDED' }).catch(() => { });
-    }
+    const tabs = await chrome.tabs.query({});
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { type: 'SESSION_ENDED' }).catch(() => { });
+    });
   } catch (e) { /* ignore */ }
 
   document.getElementById('setup-view').style.display = 'block';
