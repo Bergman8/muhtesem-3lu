@@ -14,17 +14,11 @@ let knownVerificationIds = new Set();
 let isInitialLoad = true;
 let allDocuments = [];
 
-// Initialize App on DOM Load
+// Initialize App on DOM Load — always require login
 document.addEventListener('DOMContentLoaded', () => {
-  const savedUser = localStorage.getItem('muhtesem_user');
-  if (savedUser) {
-    try {
-      currentUser = JSON.parse(savedUser);
-      initAppSession();
-    } catch (e) {
-      localStorage.removeItem('muhtesem_user');
-    }
-  }
+  // Clear any stale session data on page load
+  localStorage.removeItem('muhtesem_user');
+  currentUser = null;
 
   // Folder Upload Input Change Listener
   const folderInput = document.getElementById('folder-upload-file-input');
@@ -73,7 +67,7 @@ async function handleLogin(e) {
 
     if (data.success) {
       currentUser = data.user;
-      localStorage.setItem('muhtesem_user', JSON.stringify(currentUser));
+      // Session is only kept in memory — no localStorage persistence for security
       initAppSession();
     } else {
       errorEl.textContent = data.message;
@@ -163,10 +157,25 @@ function initAppSession() {
 
 // Handle Logout
 function handleLogout() {
+  // Disconnect Socket.IO to fix online count
+  if (socket && socket.connected) {
+    socket.disconnect();
+    socket = null;
+  }
+  // Stop polling
+  if (pollingIntervalId) {
+    clearInterval(pollingIntervalId);
+    pollingIntervalId = null;
+  }
+  // Clear session
   localStorage.removeItem('muhtesem_user');
   currentUser = null;
+  knownVerificationIds.clear();
   document.getElementById('app-wrapper').style.display = 'none';
   document.getElementById('login-overlay').style.display = 'flex';
+  // Clear login form
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
 }
 
 // View Switcher

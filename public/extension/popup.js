@@ -1,5 +1,5 @@
 // ⚙️ Railway-a deploy edəndə bu URL-i dəyişdirin, məs: 'https://muhtesem3lu.up.railway.app/api'
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'muhtesem-3lu-production.up.railway.app';
 
 let allStudents = [];
 let allUniversities = [];
@@ -132,7 +132,7 @@ async function startSession() {
       chrome.tabs.sendMessage(tabs[0].id, {
         type: 'SESSION_STARTED',
         session: activeSession
-      }).catch(() => {});
+      }).catch(() => { });
     }
   } catch (e) { /* ignore */ }
 
@@ -235,7 +235,7 @@ async function clearSession() {
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'SESSION_ENDED' }).catch(() => {});
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'SESSION_ENDED' }).catch(() => { });
     }
   } catch (e) { /* ignore */ }
 
