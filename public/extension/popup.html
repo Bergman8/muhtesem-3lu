@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+      --green: #10b981;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    body {
+      width: 380px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .header span {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .select-input, .text-input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .select-input:focus, .text-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .student-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 14px;
+    }
+    .student-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .info-value-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .info-value {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-copy {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+    }
+    .btn-copy:hover {
+      background: var(--primary);
+      color: white;
+    }
+    .status-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .status-active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+    .status-none {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div style="background: var(--primary); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">M</div>
+    <div>
+      <h3>Muhteşem 3lü</h3>
+      <span>Müraciət Köməkçisi Extension</span>
+    </div>
+  </div>
+
+  <div id="setup-view">
+    <div class="form-group">
+      <label>Tələbə Seçin</label>
+      <select id="student-select" class="select-input">
+        <option value="">Yüklənir...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Universitet Seçin</label>
+      <select id="university-select" class="select-input">
+        <option value="">Yüklənir...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Müraciət Edən Operator</label>
+      <input type="text" id="operator-input" class="text-input" placeholder="Məs. Rəvan">
+    </div>
+    <button id="btn-start" class="btn-primary" style="margin-top: 8px;">Müraciətə Başla</button>
+  </div>
+
+  <div id="active-view" style="display: none;">
+    <div class="student-card">
+      <div class="student-title">
+        <span id="active-student-name">Tələbə Adı</span>
+        <span class="status-pill status-active">Aktiv Müraciət</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Universitet</span>
+        <span class="info-value" id="active-uni-name">İstanbul Uni</span>
+      </div>
+      
+      <div style="margin-top: 10px; font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 6px;">Kopyalama Məlumatları</div>
+      
+      <div id="info-fields-list">
+        <!-- Dyn fields -->
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; display: flex; gap: 8px;">
+      <button id="btn-finish" class="btn-primary" style="background: var(--green); flex: 1;">Başvuruyu Bitir</button>
+      <button id="btn-cancel" class="btn-secondary" style="flex: 1;">Ləğv Et</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

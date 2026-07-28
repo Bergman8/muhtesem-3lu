@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Muhteşem 3lü Başvuru Yardımcısı",
+  "version": "1.0",
+  "description": "Muhteşem 3lü yönetim portalı üçün ağıllı müraciət köməkçisi.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Başvuru Yardımcısı"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

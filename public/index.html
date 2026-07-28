@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muhteşem 3 lü Kursu - İdarəetmə Portalı</title>
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h2>Muhteşem 3 lü Kursu</h2>
+        <p>Giriş panelinə xoş gəlmisiniz</p>
+      </div>
+
+
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label><i class="fa-solid fa-user"></i> İstifadəçi Adı</label>
+          <input type="text" id="login-username" placeholder="Məsələn: afet" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-lock"></i> Şifrə</label>
+          <input type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <div id="login-error" class="login-error" style="display: none;"></div>
+        <button type="submit" class="btn-primary login-btn">
+          <span>Giriş Et</span> <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP WRAPPER -->
+  <div id="app-wrapper" class="app-wrapper" style="display: none;">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="brand-text">
+            <h1>Muhteşem 3 lü</h1>
+            <span>Yönetim Portalı</span>
+            <div style="display:flex; align-items:center; gap:5px; margin-top:4px;">
+              <span style="width:7px; height:7px; background:#10b981; border-radius:50%; display:inline-block; animation: pulse 2s infinite;"></span>
+              <span style="font-size:10px; color:var(--text-dim);"><span id="online-count-badge">1</span> nəfər onlayn</span>
+            </div>
+          </div>
+        </div>
+        <button class="sidebar-toggle-btn" onclick="toggleSidebar(true)" title="Menyunu Gizlə" style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px; padding:4px 8px; border-radius:4px; transition:all 0.2s;"><i class="fa-solid fa-chevron-left"></i></button>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="home-view" onclick="switchView('home-view')">
+          <i class="fa-solid fa-chart-pie"></i> <span>Ana Sayfa</span>
+        </button>
+        <button class="nav-item" data-view="students-view" onclick="switchView('students-view')">
+          <i class="fa-solid fa-user-graduate"></i> <span>Öğrenci Bilgileri</span>
+        </button>
+        <button class="nav-item" data-view="universities-view" onclick="switchView('universities-view')">
+          <i class="fa-solid fa-university"></i> <span>Üniversitetlər</span>
+        </button>
+        <button class="nav-item" data-view="verification-view" onclick="switchView('verification-view')">
+          <i class="fa-solid fa-clipboard-check"></i> <span>Yoxlanış</span>
+          <span id="nav-pending-badge" class="badge-count">0</span>
+        </button>
+        <button class="nav-item" data-view="files-view" onclick="switchView('files-view')">
+          <i class="fa-solid fa-folder-open"></i> <span>Dosyalar</span>
+        </button>
+        <button class="nav-item sales-only" id="nav-sales-btn" data-view="sales-view" onclick="switchView('sales-view')" style="display: none;">
+          <i class="fa-solid fa-book-bookmark"></i> <span>Satışlar</span>
+        </button>
+        <button class="nav-item admin-only" id="nav-accounts-btn" data-view="accounts-view" onclick="switchView('accounts-view')" style="display: none;">
+          <i class="fa-solid fa-users-gear"></i> <span>Hesablar</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <span class="pulse-dot"></span>
+          <span>Auto-Save & Repair Active</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <button id="sidebar-restore-btn" onclick="toggleSidebar(false)" title="Menyunu Göstər" style="display:none; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="page-title">
+            <h2 id="current-view-title">Ana Sayfa</h2>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div id="autosave-pill" class="autosave-pill">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Sistem Saxlanıldı</span>
+          </div>
+
+          <div class="user-profile">
+            <div class="user-avatar" id="user-avatar-initial">A</div>
+            <div class="user-info">
+              <span class="user-name" id="user-display-name">Afət xanım</span>
+              <span class="user-role-badge" id="user-display-role">Rəhbər</span>
+            </div>
+          </div>
+
+          <button class="btn-logout" title="Çıxış Et" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW PANELS -->
+      <div class="content-body">
+        
+        <!-- 1. ANA SAYFA VIEW -->
+        <section id="home-view" class="view-panel active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-data">
+                <span class="stat-value" id="stat-students-count">0</span>
+                <span class="stat-label">Cəmi Tələbələr</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon blue"><i class="fa-solid fa-building-columns"></i></div>
+              <div class="stat-data">
+                <span class="stat-value" id="stat-unis-count">0</span>
+                <span class="stat-label">Universitetlər</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon orange"><i class="fa-solid fa-file-signature"></i></div>
+              <div class="stat-data">
+                <span class="stat-value" id="stat-apps-count">0</span>
+                <span class="stat-label">Başvurular</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon red"><i class="fa-solid fa-clock"></i></div>
+              <div class="stat-data">
+                <span class="stat-value" id="stat-pending-count">0</span>
+                <span class="stat-label">Gözləyən Yoxlanışlar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-split-grid">
+            <!-- Left Box: Recent University Applications -->
+            <div class="panel-box">
+              <div class="panel-header">
+                <h3><i class="fa-solid fa-fire"></i> Sonuncu Müraciət Edilən Üniversitetlər</h3>
+              </div>
+              <div class="panel-content" id="home-recent-unis">
+                <div class="empty-state">Müraciət məlumatı yoxdur</div>
+              </div>
+            </div>
+
+            <!-- Right Box: Student Directory Summary -->
+            <div class="panel-box">
+              <div class="panel-header">
+                <h3><i class="fa-solid fa-address-book"></i> Öğrenci Bilgileri (Son Əlavələr)</h3>
+              </div>
+              <div class="panel-content" id="home-recent-students">
+                <div class="empty-state">Tələbə məlumatı yoxdur</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Section: Görülən İşlər (Activity Log) -->
+          <div id="activity-log-section" class="panel-box full-width">
+            <div class="panel-header flex-between">
+              <h3><i class="fa-solid fa-list-check"></i> Görülən İşlər (Fəaliyyət Jurnalı)</h3>
+              <span class="log-role-notice" id="log-role-notice">Baxış yetkisi: Rəhbər və Yönetici</span>
+            </div>
+            <div class="panel-content">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Tarix / Vaxt</th>
+                      <th>İstifadəçi</th>
+                      <th>Görülən İş / Əməliyyat</th>
+                      <th>Ətraflı Detallar</th>
+                      <th class="admin-edit-col">Əməliyyat</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activity-logs-tbody">
+                    <tr><td colspan="5" class="text-center">Yüklənir...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. ÖĞRENCİ BİLGİLERİ VIEW -->
+        <section id="students-view" class="view-panel">
+          <div class="view-header flex-between">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="student-search-input" placeholder="Ad, Soyad və ya Pasport No ilə axtarın..." oninput="filterStudents()">
+            </div>
+            <div class="action-buttons">
+              <button class="btn-secondary admin-only" id="excel-import-btn" onclick="openExcelImportModal()">
+                <i class="fa-solid fa-file-excel"></i> Exceldən Əlavə Et
+              </button>
+              <button class="btn-primary" onclick="openAddStudentModal()">
+                <i class="fa-solid fa-user-plus"></i> Yeni Tələbə
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-box full-width margin-top">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>AD SOYAD</th>
+                    <th>PASAPORT NO</th>
+                    <th>EMAİL</th>
+                    <th>DOĞUM TARİXİ</th>
+                    <th>VERİLMƏ TARİXİ</th>
+                    <th>BITMƏ TARİXİ</th>
+                    <th>ƏMƏLİYYATLAR</th>
+                  </tr>
+                </thead>
+                <tbody id="students-tbody">
+                  <tr><td colspan="7" class="text-center">Tələbə məlumatı yüklənir...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2.5 ÖĞRENCİ DETAY VƏ REDAKTƏ PANELİ VIEW (Full Page Layout) -->
+        <section id="student-detail-panel-view" class="view-panel">
+          <div class="view-header flex-between">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <button class="btn-secondary" onclick="switchView('students-view')">
+                <i class="fa-solid fa-arrow-left"></i> Siyahıya Qayıt
+              </button>
+              <h3 id="student-detail-title"><i class="fa-solid fa-user-gear"></i> Tələbə Məlumatları və Redaktə</h3>
+            </div>
+
+            <div class="action-buttons">
+              <button type="button" class="btn-secondary" style="color:var(--red);" id="btn-delete-student-detail" onclick="handleDeleteStudentFromDetail()">
+                <i class="fa-solid fa-trash"></i> Sil
+              </button>
+              <button type="button" class="btn-primary" onclick="submitStudentDetailForm()">
+                <i class="fa-solid fa-floppy-disk"></i> Yadda Saxla
+              </button>
+            </div>
+          </div>
+
+          <form id="student-detail-form" onsubmit="handleSaveStudentDetailForm(event)">
+            <input type="hidden" id="student-detail-id">
+
+            <!-- Core Fields Card -->
+            <div class="panel-box full-width margin-top">
+              <div class="panel-header">
+                <h3><i class="fa-solid fa-id-card"></i> Əsas Tələbə Məlumatları</h3>
+              </div>
+              <div class="panel-content grid-2col" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:18px;">
+                <div class="form-group">
+                  <label>Ad</label>
+                  <input type="text" id="student-detail-name" required placeholder="Məs: Əli">
+                </div>
+                <div class="form-group">
+                  <label>Soyad</label>
+                  <input type="text" id="student-detail-surname" placeholder="Məs: Məmmədov">
+                </div>
+                <div class="form-group">
+                  <label>Pasport No</label>
+                  <input type="text" id="student-detail-passport" required placeholder="Məs: C12345678">
+                </div>
+                <div class="form-group">
+                  <label>Email Adresi</label>
+                  <input type="email" id="student-detail-email" placeholder="ali@mail.com">
+                </div>
+                <div class="form-group">
+                  <label>Doğum Tarixi (dd.mm.yyyy)</label>
+                  <input type="text" id="student-detail-birth" placeholder="01.01.2005">
+                </div>
+                <div class="form-group">
+                  <label>Pasport Verilmə Tarixi (dd.mm.yyyy)</label>
+                  <input type="text" id="student-detail-pass-issue" placeholder="15.05.2022">
+                </div>
+                <div class="form-group full-width" style="grid-column: span 2;">
+                  <label>Pasport Bitmə Tarixi (dd.mm.yyyy)</label>
+                  <input type="text" id="student-detail-pass-expiry" placeholder="15.05.2032">
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Fields Card -->
+            <div class="panel-box full-width margin-top">
+              <div class="panel-header flex-between">
+                <h3><i class="fa-solid fa-sliders"></i> Əlavə Məlumatlar (Excel-dən Yüklənənlər və Xüsusi Xanalar)</h3>
+                <button type="button" class="btn-secondary" style="font-size:12px;" onclick="addStudentCustomFieldRow()">
+                  <i class="fa-solid fa-plus"></i> Yeni Əlavə Məlumat Xanası
+                </button>
+              </div>
+              <div class="panel-content">
+                <div id="student-custom-fields-grid" style="display:flex; flex-direction:column; gap:12px;"></div>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- 3. ÜNİVERSİTETLƏR VIEW -->
+        <section id="universities-view" class="view-panel">
+          <div class="uni-layout">
+            <!-- Left Universities Menu -->
+            <div class="uni-sidebar">
+              <div class="uni-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="uni-search-input" placeholder="Universitet axtarın..." oninput="filterUniList()">
+              </div>
+              <div class="uni-list-scroll" id="uni-menu-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Right University Panel -->
+            <div class="uni-content-panel" id="uni-detail-panel">
+              <div class="empty-state-large">
+                <i class="fa-solid fa-building-columns"></i>
+                <h3>Sol menyudan bir universitet seçin</h3>
+                <p>Universitet paneli və başvuran tələbələrin siyahısı burada görünəcək.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. YOXLANIŞ VIEW -->
+        <section id="verification-view" class="view-panel">
+          <div class="view-header">
+            <h3><i class="fa-solid fa-list-check"></i> 3 Aşamalı Yoxlanış Paneli</h3>
+            <p>Müraciətlər avtomatik redaktə olunub red bölməsinə düşür və növbə ilə yoxlanılır.</p>
+          </div>
+
+          <div class="kanban-board">
+            <!-- Column 1: Kontrol Bekleniyor (RED) -->
+            <div class="kanban-col red-col">
+              <div class="kanban-col-header">
+                <div class="status-indicator red"></div>
+                <h4>Kontrol Bekleniyor</h4>
+                <span class="kanban-count" id="count-bekleniyor">0</span>
+              </div>
+              <div class="kanban-cards-container" id="col-bekleniyor">
+                <!-- Cards -->
+              </div>
+            </div>
+
+            <!-- Column 2: Kontrol Ediliyor (YELLOW) -->
+            <div class="kanban-col yellow-col">
+              <div class="kanban-col-header">
+                <div class="status-indicator yellow"></div>
+                <h4>Kontrol Ediliyor</h4>
+                <span class="kanban-count" id="count-ediliyor">0</span>
+              </div>
+              <div class="kanban-cards-container" id="col-ediliyor">
+                <!-- Cards -->
+              </div>
+            </div>
+
+            <!-- Column 3: Kontrol Edildi (GREEN) -->
+            <div class="kanban-col green-col">
+              <div class="kanban-col-header">
+                <div class="status-indicator green"></div>
+                <h4>Kontrol Edildi</h4>
+                <span class="kanban-count" id="count-edildi">0</span>
+              </div>
+              <div class="kanban-cards-container" id="col-edildi">
+                <!-- Cards -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. SATIŞLAR VIEW (Jale & Qəşəm) -->
+        <section id="sales-view" class="view-panel">
+          
+          <!-- Catalog Container -->
+          <div id="book-catalog-container">
+            <div class="view-header flex-between">
+              <div>
+                <h3><i class="fa-solid fa-book-open"></i> Kitab Satışları Paneli</h3>
+                <p>Kitab Kataloqu və Tələbələrə Satışın Qeydiyyatı</p>
+              </div>
+              <button class="btn-primary" onclick="openAddBookModal()">
+                <i class="fa-solid fa-plus"></i> Yeni Kitab Əlavə Et
+              </button>
+            </div>
+
+            <!-- Books Grid -->
+            <div class="books-grid" id="books-grid">
+              <!-- Dynamic Books Cards -->
+            </div>
+          </div>
+
+          <!-- Selected Book Detail & Sales Section -->
+          <div id="book-detail-view-container" style="display: none;">
+            <div class="view-header flex-between">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <button class="btn-secondary" onclick="closeBookDetailView()">
+                  <i class="fa-solid fa-arrow-left"></i> Kataloqa Qayıt
+                </button>
+                <h3 id="selected-book-title"><i class="fa-solid fa-book"></i> Kitab Satış Siyahısı</h3>
+              </div>
+              <div class="action-buttons">
+                <button class="btn-secondary" onclick="openBookSalesExcelImportModal()">
+                  <i class="fa-solid fa-file-excel"></i> Excel-dən Yüklə
+                </button>
+              </div>
+            </div>
+
+            <div id="selected-book-sales-container" class="panel-box full-width margin-top">
+              <!-- Rendered when a book is selected -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- 5.5 DOSYALAR VIEW -->
+        <section id="files-view" class="view-panel">
+          
+          <!-- View 1: Main Folders Grid View -->
+          <div id="files-folders-container">
+            <div class="view-header flex-between">
+              <div>
+                <h3><i class="fa-solid fa-folder-open"></i> Sənədlər və Dosyalar Arşivi</h3>
+                <p>Şagirdlərə məxsus sənəd qovluqlarının idarəetmə mərkəzi</p>
+              </div>
+              <div class="action-buttons" style="display:flex; gap:12px;">
+                <button class="btn-secondary" style="border-color:rgba(239,68,68,0.4); color:var(--red); padding: 8px 16px;" onclick="clearAllDocumentsArchive()">
+                  <i class="fa-solid fa-trash-can"></i> Arşivi Təmizlə
+                </button>
+                <button class="btn-secondary" style="border-color:rgba(99,102,241,0.4); padding: 8px 16px;" onclick="openUploadFolderModal()">
+                  <i class="fa-solid fa-folder-plus"></i> Qovluq Yüklə (Toplu)
+                </button>
+                <button class="btn-primary" onclick="openUploadDocumentModal()">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Yeni Sənəd Yüklə
+                </button>
+              </div>
+            </div>
+
+            <!-- Search box for folders -->
+            <div class="panel-box full-width margin-top" style="border:none; background:transparent; padding:0; backdrop-filter:none;">
+              <div class="search-box" style="width:100%; max-width:400px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="folder-search-input" placeholder="Şagird qovluğu axtarın..." oninput="renderFilesView()">
+              </div>
+            </div>
+
+            <div class="folders-grid" id="folders-grid-list">
+              <!-- Dynamic folder cards will render here -->
+            </div>
+          </div>
+
+          <!-- View 2: Detailed Student Folder View (Opened when clicking a folder card) -->
+          <div id="student-folder-view-container" style="display:none;">
+            <div class="view-header flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px;">
+              <div>
+                <button class="btn-secondary" onclick="backToFoldersList()" style="margin-bottom:12px; padding: 6px 12px; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                  <i class="fa-solid fa-arrow-left-long"></i> Qovluqlara Qayıt
+                </button>
+                <h3 id="selected-student-folder-title"><i class="fa-solid fa-folder-open"></i> [Şagird Adı] - Sənədlər Qovluğu</h3>
+                <p id="selected-student-folder-subtitle">Şagirdin bütün yüklənmiş sənədlərinin siyahısı</p>
+              </div>
+            </div>
+
+            <!-- Folder Student Mapping Panel -->
+            <div id="folder-student-mapping-panel" class="column-mapping-box" style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99,102,241,0.2); padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-link" style="color:var(--primary); font-size:18px;"></i>
+                <div>
+                  <div style="font-weight:600; color:white;" id="mapping-status-title">Qovluq Əlaqəsi: Yüklənir...</div>
+                  <div style="font-size:12px; color:var(--text-dim);" id="mapping-status-subtitle">Şagird əlaqəsini təyin edin.</div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;" id="mapping-actions-container">
+                <!-- Dropdown & button or un-link button -->
+              </div>
+            </div>
+
+            <!-- Upload new document for this specific student directly -->
+            <div class="column-mapping-box" style="background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(255,255,255,0.1); padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
+              <h4 style="margin-top:0; margin-bottom:12px;"><i class="fa-solid fa-cloud-arrow-up"></i> Bu Qovluq üçün Yeni Sənəd Yüklə</h4>
+              <form onsubmit="handleDirectDocumentUpload(event)" style="display:flex; flex-direction:column; gap:12px;">
+                <input type="hidden" id="direct-upload-folder-name">
+                <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:200px;">
+                    <label style="display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px;">Sənədin Adı / Başlığı</label>
+                    <input type="text" id="direct-upload-custom-name" placeholder="Məs. Pasport Surəti" required style="width:100%; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); color:white; padding:10px 12px; border-radius:var(--radius-sm);">
+                  </div>
+                  <div style="flex:1; min-width:200px;">
+                    <label style="display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px;">Fayl Seçin</label>
+                    <input type="file" id="direct-upload-file-input" required style="width:100%; color:white; padding:6px 0;">
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end;">
+                  <button type="submit" class="btn-primary" style="padding:10px 20px;"><i class="fa-solid fa-upload"></i> Sənədi Yüklə</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Documents Table for this student -->
+            <div class="panel-box full-width">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>SƏNƏDİN ADI</th>
+                      <th>FAYL ADI</th>
+                      <th>TARİX</th>
+                      <th>YÜKLƏYƏN</th>
+                      <th>ƏMƏLİYYATLAR</th>
+                    </tr>
+                  </thead>
+                  <tbody id="student-folder-files-tbody">
+                    <!-- Dynamic files -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- View 3: Unmatched Folder View (Opened when clicking unmatched folder card) -->
+          <div id="unmatched-folder-view-container" style="display:none;">
+            <div class="view-header" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px;">
+              <button class="btn-secondary" onclick="backToFoldersList()" style="margin-bottom:12px; padding: 6px 12px; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-arrow-left-long"></i> Qovluqlara Qayıt
+              </button>
+              <h3 style="color:var(--yellow);" id="unmatched-folder-title"><i class="fa-solid fa-triangle-exclamation"></i> Eşləşməyən Sənədlər Qovluğu</h3>
+              <p id="unmatched-folder-subtitle">Toplu qovluq yükləyərkən adları bazadakı tələbələrlə uyğun gəlməyən faylların siyahısı</p>
+            </div>
+
+            <div class="panel-box full-width">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>QOVLUQ ADI (TƏLƏBƏ ADI)</th>
+                      <th>SƏNƏD / FAYL ADI</th>
+                      <th>ŞAGİRD SEÇİN</th>
+                      <th>ƏMƏLİYYAT</th>
+                    </tr>
+                  </thead>
+                  <tbody id="unmatched-folder-files-tbody">
+                    <!-- Dynamic unmatched mapping rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. HESABLAR VIEW (Qəşəm Only) -->
+        <section id="accounts-view" class="view-panel">
+          <div class="view-header flex-between">
+            <div>
+              <h3><i class="fa-solid fa-users-gear"></i> Sistem Hesablarının İdarə Edilməsi</h3>
+              <p>İstifadəçilərin tənzimlənməsi, şifrə yenilənməsi və deaktivasiyası</p>
+            </div>
+            <div class="action-buttons" style="display:flex; gap:12px;">
+              <button class="btn-secondary" style="color:var(--red); border-color:rgba(239, 68, 68, 0.4); padding: 8px 16px;" onclick="resetAllStudentData()">
+                <i class="fa-solid fa-trash-can"></i> Tələbə Məlumatlarını Sıfırla
+              </button>
+              <button class="btn-primary" onclick="openAddUserModal()">
+                <i class="fa-solid fa-user-plus"></i> Yeni İstifadəçi Yarat
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-box full-width margin-top">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>İstifadəçi Adı</th>
+                    <th>Ad Soyad</th>
+                    <th>Rolu</th>
+                    <th>Status</th>
+                    <th>Əməliyyatlar</th>
+                  </tr>
+                </thead>
+                <tbody id="accounts-tbody">
+                  <!-- Dynamic user rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Re-verification Override Permissions (Qesem Only) -->
+          <div class="panel-box full-width margin-top" style="margin-top: 24px;">
+            <div class="panel-header" style="border-top:none; background:transparent; padding:0 0 12px 0; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+              <h3 style="margin:0;"><i class="fa-solid fa-key"></i> Təkrar Yoxlanış İcazələri (Recheck Override)</h3>
+              <span style="font-size:12px; color:var(--text-muted);">Əvvəlki yoxlayanın yenidən eyni tələbəni yoxlaya bilməsi üçün buradan icazə verə bilərsiniz.</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>TƏLƏBƏ ADI SOYADI</th>
+                    <th>UNİVERSİTET</th>
+                    <th>ƏVVƏLKİ YOXLAYAN</th>
+                    <th>STATUS</th>
+                    <th>İCAZƏ STATUSU</th>
+                    <th>ƏMƏLİYYAT</th>
+                  </tr>
+                </thead>
+                <tbody id="recheck-permissions-tbody">
+                  <!-- Dynamic recheck overrides rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- EXCEL IMPORT MODAL -->
+  <div id="excel-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-excel"></i> Excel-dən Tələbə Məlumatları Əlavə Et</h3>
+        <button class="modal-close" onclick="closeModal('excel-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleExcelUpload(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Excel Faylı Seçin (.xlsx, .xls)</label>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls" required>
+          </div>
+
+          <div class="column-mapping-box">
+            <h4><i class="fa-solid fa-sliders"></i> Sütun Seçimi (Hədəf Məlumat -> Excel Sütunu)</h4>
+            <p class="help-text">Məsələn: Ad Soyad üçün <strong>A</strong>, Pasport No üçün <strong>B</strong> yazıb seçin.</p>
+            
+            <div class="mapping-grid">
+              <div class="map-item">
+                <label>Tələbə Adı:</label>
+                <input type="text" id="map-name" value="A" placeholder="Məs. A" required>
+              </div>
+              <div class="map-item">
+                <label>Tələbə Soyadı:</label>
+                <input type="text" id="map-surname" value="B" placeholder="Məs. B">
+              </div>
+              <div class="map-item">
+                <label>Pasport No:</label>
+                <input type="text" id="map-passport" value="C" placeholder="Məs. C" required>
+              </div>
+              <div class="map-item">
+                <label>Email Adresi:</label>
+                <input type="text" id="map-email" value="D" placeholder="Məs. D">
+              </div>
+              <div class="map-item">
+                <label>Doğum Tarixi:</label>
+                <input type="text" id="map-birth" value="E" placeholder="Məs. E">
+              </div>
+              <div class="map-item">
+                <label>Pasport Verilmə Tarixi:</label>
+                <input type="text" id="map-issue" value="F" placeholder="Məs. F">
+              </div>
+              <div class="map-item">
+                <label>Pasport Bitmə Tarixi:</label>
+                <input type="text" id="map-expiry" value="G" placeholder="Məs. G">
+              </div>
+            </div>
+
+            <!-- Dynamic Custom Fields Section -->
+            <div id="custom-fields-mapping-container" style="margin-top: 14px;"></div>
+            
+            <div style="margin-top: 14px;">
+              <button type="button" class="btn-secondary" style="font-size: 12px; width: 100%; justify-content: center;" onclick="addCustomFieldMappingRow()">
+                <i class="fa-solid fa-plus"></i> Yeni Məlumat Sütunu Əlavə Et (Ata Adı, Telefon və s.)
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('excel-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Yüklə və Bazaya Köçür</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+
+  <!-- APPLICANT ANIMATED DETAIL POPUP MODAL -->
+  <div id="applicant-detail-modal" class="modal-overlay animated-fade" style="display: none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-address-card"></i> Tələbə Başvuru Məlumatları Paneli</h3>
+        <button class="modal-close" onclick="closeModal('applicant-detail-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="applicant-detail-body">
+        <!-- Dynamic content filled by app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD APPLICATION TO UNIVERSITY MODAL -->
+  <div id="apply-uni-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-paper-plane"></i> Universitetə Müraciət Əlavə Et</h3>
+        <button class="modal-close" onclick="closeModal('apply-uni-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleCreateApplication(event)">
+        <input type="hidden" id="apply-target-uni-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Universitet</label>
+            <input type="text" id="apply-target-uni-name" readonly class="readonly-input">
+          </div>
+          <div class="form-group">
+            <label>Tələbə Seçin</label>
+            <select id="apply-select-student" required class="select-input">
+              <!-- Options loaded dynamically -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('apply-uni-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Müraciət Yarad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT UNIVERSITY & ROUND MODAL -->
+  <div id="uni-edit-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Universitet Məlumatlarını Düzenle</h3>
+        <button class="modal-close" onclick="closeModal('uni-edit-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleSaveUniDetails(event)">
+        <input type="hidden" id="edit-uni-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Universitet Adı</label>
+            <input type="text" id="edit-uni-name" required>
+          </div>
+          <div class="form-group">
+            <label>Başlanğıc Tarixi (dd.mm.yyyy)</label>
+            <input type="text" id="edit-uni-start" required placeholder="01.08.2026">
+          </div>
+          <div class="form-group">
+            <label>Son Tarixi (dd.mm.yyyy)</label>
+            <input type="text" id="edit-uni-end" required placeholder="31.08.2026">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('uni-edit-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary">Yadda Saxla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD NEW ROUND MODAL (2. Tur, 3. Tur) -->
+  <div id="new-round-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-rotate-right"></i> Yeni Tur Aç (2. Tur / 3. Tur)</h3>
+        <button class="modal-close" onclick="closeModal('new-round-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleCreateNewRound(event)">
+        <input type="hidden" id="round-uni-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Tur Adı</label>
+            <select id="round-name-select" class="select-input">
+              <option value="2. Tur">2. Tur</option>
+              <option value="3. Tur">3. Tur</option>
+              <option value="4. Tur">4. Tur</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tur Başlanğıc Tarixi</label>
+            <input type="text" id="round-start-date" required placeholder="01.09.2026">
+          </div>
+          <div class="form-group">
+            <label>Tur Son Tarixi</label>
+            <input type="text" id="round-end-date" required placeholder="15.09.2026">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('new-round-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary">Turu Aç və Yadda Saxla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- QUICK VIEW STUDENT MODAL -->
+  <div id="view-student-quick-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-check"></i> Şagird Məlumatları (Ətraflı Baxış)</h3>
+        <button class="modal-close" onclick="closeModal('view-student-quick-modal')">&times;</button>
+      </div>
+      <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <!-- Left Side: Basic Info -->
+        <div>
+          <h4 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color:var(--primary); font-weight:700;"><i class="fa-solid fa-address-card"></i> Əsas Məlumatlar</h4>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;" id="quick-view-basic-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        
+        <!-- Right Side: Custom Fields -->
+        <div>
+          <h4 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color:var(--primary); font-weight:700;"><i class="fa-solid fa-sliders"></i> Əlavə Məlumatlar</h4>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;" id="quick-view-custom-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" onclick="closeModal('view-student-quick-modal')">Bağla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD DOCUMENT MODAL -->
+  <div id="upload-document-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-arrow-up"></i> Yeni Sənəd Yüklə</h3>
+        <button class="modal-close" onclick="closeModal('upload-document-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleDocumentUpload(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Tələbə Seçin</label>
+            <select id="doc-upload-student-select" class="select-input" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sənəd Başlığı (Məs. Pasport, Attestat, TRYÖS nəticəsi)</label>
+            <input type="text" id="doc-upload-custom-name" required placeholder="Məs. Pasport Surəti">
+          </div>
+          <div class="form-group">
+            <label>Fayl Seçin (.pdf, .jpg, .png, .docx...)</label>
+            <input type="file" id="doc-upload-file-input" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('upload-document-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-upload"></i> Sənədi Yüklə</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- UPLOAD FOLDER MODAL -->
+  <div id="upload-folder-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-folder-open"></i> Qovluq Toplu Yüklə</h3>
+        <button class="modal-close" onclick="closeModal('upload-folder-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleFolderUploadSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Ana Qovluğu Seçin (Məs. Genel öğrenci bilgileri)</label>
+            <input type="file" id="folder-upload-file-input" webkitdirectory directory multiple required>
+            <div id="selected-folder-info-box" style="display:none; margin-top:12px; padding:12px; background:rgba(255,255,255,0.04); border-radius:var(--radius-md); font-size:13px; border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:8px;"></div>
+            <small style="color:var(--text-muted); display:block; margin-top:6px;">Qovluğun strukturu belə olmalıdır:<br><strong>Ana Qovluq > [Şagirdin Adı Soyadı] > [Sənəd faylları]</strong></small>
+          </div>
+          <div id="folder-upload-progress-container" style="display:none; margin-top:16px;">
+            <label style="display:block; font-size:12px; margin-bottom:4px;" id="folder-upload-progress-text">Yüklənir...</label>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+              <div id="folder-upload-progress-bar" style="width:0%; height:100%; background:var(--primary); transition:width 0.2s ease;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('upload-folder-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary" id="btn-submit-folder-upload"><i class="fa-solid fa-cloud-arrow-up"></i> Yükləməyə Başla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="add-book-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-book"></i> Yeni Kitab Əlavə Et</h3>
+        <button class="modal-close" onclick="closeModal('add-book-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleCreateBook(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Kitabın Adı</label>
+            <input type="text" id="book-name" required placeholder="Məsələn: YÖS Matematik 1">
+          </div>
+          <div class="form-group">
+            <label>Kursiçi Qiyməti (AZN)</label>
+            <input type="number" step="0.01" id="book-course-price" required placeholder="25.00">
+          </div>
+          <div class="form-group">
+            <label>Kursdan Xaricə Qiyməti (AZN)</label>
+            <input type="number" step="0.01" id="book-noncourse-price" required placeholder="35.00">
+          </div>
+          <div class="form-group">
+            <label>Kitabın Şəkli (Fayl və ya Şəkil URL-i)</label>
+            <input type="file" id="book-image-file" accept="image/*">
+            <small>və ya URL daxil edin:</small>
+            <input type="text" id="book-image-url" placeholder="https://...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('add-book-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary">Kitabı Yarad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- BOOK SALES EXCEL IMPORT MODAL -->
+  <div id="book-sales-excel-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-excel"></i> Excel-dən Satış Siyahısı Əlavə Et</h3>
+        <button class="modal-close" onclick="closeModal('book-sales-excel-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleBookSalesExcelUpload(event)">
+        <input type="hidden" id="book-sales-excel-target-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Excel Faylı Seçin (.xlsx, .xls)</label>
+            <input type="file" id="book-sales-excel-file-input" accept=".xlsx, .xls" required>
+          </div>
+
+          <div class="column-mapping-box">
+            <h4><i class="fa-solid fa-sliders"></i> Sütun Seçimi (Hədəf Məlumat -> Excel Sütunu)</h4>
+            
+            <div class="mapping-grid">
+              <div class="map-item">
+                <label>Tələbə Adı Soyadı:</label>
+                <input type="text" id="map-sale-student" value="A" placeholder="Məs. A" required>
+              </div>
+              <div class="map-item">
+                <label>Ödəniş Növü (Nağd, Kart...):</label>
+                <input type="text" id="map-sale-payment" value="B" placeholder="Məs. B" required>
+              </div>
+              <div class="map-item">
+                <label>Qiymət (Kursiçi/Xaric):</label>
+                <input type="text" id="map-sale-price-type" value="C" placeholder="Məs. C">
+              </div>
+              <div class="map-item">
+                <label>Satış Tarixi:</label>
+                <input type="text" id="map-sale-date" value="D" placeholder="Məs. D">
+              </div>
+              <div class="map-item">
+                <label>Təhvil Statusu (Bəli/Hə):</label>
+                <input type="text" id="map-sale-delivered" value="E" placeholder="Məs. E">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('book-sales-excel-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> İdxal Et</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD SALE MODAL -->
+  <div id="add-sale-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cart-shopping"></i> Yeni Kitab Satışı</h3>
+        <button class="modal-close" onclick="closeModal('add-sale-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleRecordSale(event)">
+        <input type="hidden" id="sale-book-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Tələbə Adı Soyadı</label>
+            <input type="text" id="sale-student-name" required placeholder="Məsələn: Orxan Əliyev">
+          </div>
+          <div class="form-group">
+            <label>Qiymət Növü</label>
+            <select id="sale-price-type" class="select-input">
+              <option value="kursiçi">Kursiçi Qiymət</option>
+              <option value="nonkursiçi">Kursdan Xaric Qiymət</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ödəniş Növü</label>
+            <select id="sale-payment-type" class="select-input">
+              <option value="Nağd">Nağd</option>
+              <option value="Kart">Kart Ödənişi</option>
+              <option value="Nisyə">Nisyə</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Satış Tarixi (dd.mm.yyyy)</label>
+            <input type="text" id="sale-date" placeholder="27.07.2026">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('add-sale-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary">Satışı Qeydə Al</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT USER MODAL -->
+  <div id="user-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-gear"></i> Sistem İstifadəçisi Əlavə Et / Düzəlt</h3>
+        <button class="modal-close" onclick="closeModal('user-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleSaveUser(event)">
+        <input type="hidden" id="user-edit-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>İstifadəçi Adı (Username)</label>
+            <input type="text" id="user-username" required placeholder="məs: murad">
+          </div>
+          <div class="form-group">
+            <label>Ad Soyad</label>
+            <input type="text" id="user-name" required placeholder="məs: Murad Hüseynov">
+          </div>
+          <div class="form-group">
+            <label>Şifrə</label>
+            <input type="text" id="user-password" placeholder="Yeni şifrə daxil edin">
+          </div>
+          <div class="form-group">
+            <label>Sistem Rolu</label>
+            <select id="user-role-select" class="select-input">
+              <option value="rahbar">Rəhbər (Afət xanım yetkisi)</option>
+              <option value="operator">Operator (Başvuru & Yoxlanış)</option>
+              <option value="admin">Yönetici (Qəşəm yetkisi - Tam giriş)</option>
+              <option value="sales">Kitab Satışları (Jalə yetkisi)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('user-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary">Hesabı Yadda Saxla</button>
+        </div>
+      </form>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
