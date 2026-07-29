@@ -2301,6 +2301,23 @@ async function resetAllStudentData() {
   }
 }
 
+async function clearAllDocumentsArchive() {
+  if (confirm("Bütün yüklənmiş sənədləri silmək və sənədlər arşivini tamamilə təmizləmək istədiyinizə əminsiniz? (Şagird siyahısı silinməyəcək)")) {
+    try {
+      const res = await fetch('/api/documents/clear-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operator: currentUser.name })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Bütün sənəd arşivi uğurla təmizləndi!");
+        selectedFileStudentId = null;
+        await loadAllData();
+        backToFoldersList();
+      } else {
+        alert(data.message);
+      }
     } catch (err) {
       alert("Təmizlənmə zamanı xəta baş verdi: " + err.message);
     }
