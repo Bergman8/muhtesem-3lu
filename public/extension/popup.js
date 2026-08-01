@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-start').addEventListener('click', startSession);
   document.getElementById('btn-finish').addEventListener('click', finishSession);
   document.getElementById('btn-cancel').addEventListener('click', cancelSession);
+
+  // Sayta Keç button click listener
+  document.getElementById('btn-go-to-site').addEventListener('click', () => {
+    const portalUrl = API_BASE.replace(/\/api$/, '');
+    chrome.tabs.create({ url: portalUrl });
+  });
 });
 
 async function loadData() {
