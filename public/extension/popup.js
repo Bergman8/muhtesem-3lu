@@ -1,5 +1,5 @@
-// ⚙️ Railway API URL
-const API_BASE = 'https://muhtesem-3lu-production.up.railway.app/api';
+// ⚙️ Ngrok Local Server API URL
+const API_BASE = 'https://appulsively-postencephalitic-exie.ngrok-free.dev/api';
 
 let allStudents = [];
 let allUniversities = [];

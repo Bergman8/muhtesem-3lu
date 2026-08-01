@@ -5,4 +5,4 @@
 cd /d "%~dp0"
 start /b node server.js
 timeout /t 5 >nul
-start /b ngrok http 3000 --domain=YOUR_DOMAIN
+start /b ngrok http 3000 --domain=appulsively-postencephalitic-exie.ngrok-free.dev
