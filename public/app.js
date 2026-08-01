@@ -440,7 +440,7 @@ function renderStudentsView() {
       <th>AD SOYAD</th>
       <th>PASAPORT NO</th>
       <th>EMAİL</th>
-      <th style="width: 250px;">ƏMƏLİYYATLAR</th>
+      <th style="width: 320px;">ƏMƏLİYYATLAR</th>
     `;
   }
 
@@ -467,6 +467,9 @@ function renderStudentsView() {
       </td>
       <td>
         <div style="display:flex; gap:6px;">
+          <button class="btn-primary" style="padding:4px 8px; font-size:12px; background:var(--green); border-color:transparent;" onclick="event.stopPropagation(); openWhatsAppModal('${s.id}')">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </button>
           <button class="btn-primary" style="padding:4px 8px; font-size:12px; background:var(--blue);" onclick="event.stopPropagation(); openStudentQuickView('${s.id}')">
             <i class="fa-solid fa-eye"></i> Bax
           </button>
@@ -527,6 +530,14 @@ function openStudentQuickView(id) {
     `).join('');
   } else {
     customList.innerHTML = `<div style="font-size:13px; color:var(--text-dim); font-style:italic; margin-top:12px;">Əlavə məlumat daxil edilməyib.</div>`;
+  }
+
+  const waBtn = document.getElementById('quick-view-wa-btn');
+  if (waBtn) {
+    waBtn.onclick = () => {
+      closeModal('view-student-quick-modal');
+      openWhatsAppModal(s.id);
+    };
   }
 
   openModal('view-student-quick-modal');
@@ -1198,6 +1209,11 @@ function renderVerificationView() {
           <span>${item.previousCheckedBy ? '2-ci Yoxlayan (Sonrakı)' : 'Təsdiqləyən'}: <strong>${item.checkedBy}</strong></span>
           <span class="badge-status green" style="margin-top: 4px;">Yoxlanıldı</span>
         </div>
+        <div class="card-actions" style="margin-top: 8px;">
+          <button class="btn-card-action" style="background:var(--green); border-color:transparent; color:white; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; font-weight:600;" onclick="openWhatsAppModal('${item.studentId || ''}', '${item.universityName.replace(/'/g, "\\'")}')">
+            <i class="fa-brands fa-whatsapp" style="font-size:14px;"></i> WhatsApp Bildirişi
+          </button>
+        </div>
       </div>
     `).join('');
 }
@@ -1759,11 +1775,11 @@ function initSocketIO() {
       chatHistory[convId].push(message);
     }
 
-    // Auto-open chat box on incoming message for target receiver
+    // Show toast and play sound on incoming message for target receiver
     if (message.receiver === currentUser.username && message.sender !== currentUser.username) {
-      if (activeChatPartner !== message.sender || !isChatExpanded) {
-        expandChatWidget();
-        enterChatWith(message.sender);
+      const isActivelyChatting = isChatExpanded && activeChatPartner === message.sender;
+      if (!isActivelyChatting) {
+        showChatNotification(message);
       }
       playNotificationSound();
     }
@@ -1922,8 +1938,11 @@ function openFolderDetail(folderName) {
         <td><span class="badge-count" style="background:rgba(255,255,255,0.08); color:white;">${d.uploadedBy}</span></td>
         <td>
           <div style="display:flex; gap:8px;">
+            <a href="${d.filePath}" download="${d.customName}" class="btn-secondary" style="padding:6px 10px; font-size:12px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+              <i class="fa-solid fa-download"></i> Yüklə
+            </a>
             <a href="${d.filePath}" target="_blank" class="btn-secondary" style="padding:6px 10px; font-size:12px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
-              <i class="fa-solid fa-up-right-from-square"></i> Aç / Yüklə
+              <i class="fa-solid fa-up-right-from-square"></i> Aç
             </a>
             <button class="btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="renameDocument('${d.id}')">
               <i class="fa-solid fa-pen"></i> Adı Dəyiş
@@ -2882,4 +2901,165 @@ function playNotificationSound() {
     console.warn("Failed to play synthesized sound:", e);
   }
 }
+
+// -------------------------------------------------------------
+// 9. WHATSAPP ACCEPTANCE MESSAGE SENDER
+// -------------------------------------------------------------
+let selectedStudentForWa = null;
+
+function openWhatsAppModal(studentId, uniName = "") {
+  const std = allStudents.find(s => s.id === studentId);
+  if (!std) return;
+
+  selectedStudentForWa = std;
+
+  document.getElementById('wa-student-name').value = `${std.name} ${std.surname}`;
+  document.getElementById('wa-university-name').value = uniName || "";
+
+  // Attempt to find parent name and phone in custom fields
+  let parentName = "";
+  let phone = "";
+
+  if (std.customFields && typeof std.customFields === 'object') {
+    Object.entries(std.customFields).forEach(([key, val]) => {
+      const kNorm = key.toLowerCase();
+      // Look for parent keywords
+      if (kNorm.includes('ata') || kNorm.includes('ana') || kNorm.includes('valideyn') || kNorm.includes('parent') || kNorm.includes('bağı') || kNorm.includes('bagi')) {
+        parentName = val;
+      }
+      // Look for phone keywords
+      if (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel')) {
+        phone = val;
+      }
+    });
+  }
+
+  document.getElementById('wa-parent-name').value = parentName;
+  document.getElementById('wa-parent-phone').value = phone;
+
+  // Add inputs listeners to dynamically update message preview
+  const updatePreview = () => {
+    const pName = document.getElementById('wa-parent-name').value.trim() || "[Valideyn]";
+    const sName = `${std.name} ${std.surname}`;
+    const uName = document.getElementById('wa-university-name').value.trim() || "[Universitet]";
+    
+    const text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} qəbul müraciəti uğurla tamamlanmışdır.\n\nTəbrik edir, uğurlar arzulayırıq! 🎉\n\nHörmətlə, Muhteşem 3lü Kursu.`;
+    document.getElementById('wa-message-preview').value = text;
+  };
+
+  document.getElementById('wa-parent-name').oninput = updatePreview;
+  document.getElementById('wa-university-name').oninput = updatePreview;
+  
+  updatePreview();
+  openModal('whatsapp-modal');
+}
+
+function handleSendWhatsApp(e) {
+  e.preventDefault();
+  const phoneRaw = document.getElementById('wa-parent-phone').value.trim();
+  const text = document.getElementById('wa-message-preview').value;
+
+  // Clean phone number (remove +, spaces, leading zeros etc.)
+  let phoneClean = phoneRaw.replace(/[^0-9]/g, '');
+  
+  // Clean logic:
+  if (phoneClean.startsWith('0')) {
+    phoneClean = '994' + phoneClean.substring(1);
+  } else if (phoneClean.startsWith('50') || phoneClean.startsWith('51') || phoneClean.startsWith('55') || phoneClean.startsWith('70') || phoneClean.startsWith('77') || phoneClean.startsWith('99')) {
+    if (phoneClean.length === 9) {
+      phoneClean = '994' + phoneClean;
+    }
+  }
+
+  const encodedText = encodeURIComponent(text);
+  const waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`;
+
+  // Log activity
+  if (currentUser) {
+    fetch('/api/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operator: currentUser.name,
+        message: `${selectedStudentForWa.name} ${selectedStudentForWa.surname} üçün valideynə WhatsApp qəbul bildirişi göndərildi.`
+      })
+    }).catch(() => {});
+  }
+
+  window.open(waUrl, '_blank');
+  closeModal('whatsapp-modal');
+}
+
+// -------------------------------------------------------------
+// 10. DELETE ENTIRE FOLDER FROM SERVER
+// -------------------------------------------------------------
+async function deleteFolder(folderName) {
+  if (!folderName) return;
+  if (!confirm(`"${folderName}" qovluğunu və daxilindəki BÜTÜN sənədləri silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz!`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/documents/delete-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folderName,
+        operator: currentUser.name
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Qovluq və daxilindəki bütün sənədlər uğurla silindi.");
+      selectedFolder = null;
+      await loadAllData();
+      backToFoldersList();
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert("Qovluq silinərkən xəta baş verdi: " + err.message);
+  }
+}
+
+// -------------------------------------------------------------
+// 11. CHAT TOAST SLIDE-IN NOTIFICATIONS
+// -------------------------------------------------------------
+function showChatNotification(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const senderDisplay = message.sender === 'afet' ? 'Afət xanım' : (message.sender === 'revan' ? 'Rəvan' : (message.sender === 'kerim' ? 'Kərim' : 'Qəşəm'));
+  const initial = senderDisplay.charAt(0).toUpperCase();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-card';
+  
+  toast.onclick = () => {
+    expandChatWidget();
+    enterChatWith(message.sender);
+    toast.remove();
+  };
+
+  toast.innerHTML = `
+    <div class="toast-icon" style="background:rgba(99,102,241,0.15); color:var(--primary); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+      <i class="fa-solid fa-comment-dots"></i>
+    </div>
+    <div class="toast-content" style="flex:1;">
+      <div class="toast-title" style="font-weight:700; font-size:13px;">${senderDisplay}</div>
+      <div class="toast-body" style="font-size:12px; color:var(--text-dim); margin-top:2px;">${message.text}</div>
+    </div>
+    <button type="button" class="toast-close" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; margin-top:-4px;" onclick="event.stopPropagation(); this.parentElement.remove()">&times;</button>
+  `;
+
+  container.appendChild(toast);
+
+  // Auto-remove toast after 6 seconds
+  setTimeout(() => {
+    if (toast && toast.parentElement) {
+      toast.remove();
+    }
+  }, 6000);
+}
+
 

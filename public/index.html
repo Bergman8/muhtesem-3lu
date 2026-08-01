@@ -569,6 +569,11 @@
                 <h3 id="selected-student-folder-title"><i class="fa-solid fa-folder-open"></i> [Şagird Adı] - Sənədlər Qovluğu</h3>
                 <p id="selected-student-folder-subtitle">Şagirdin bütün yüklənmiş sənədlərinin siyahısı</p>
               </div>
+              <div>
+                <button class="btn-secondary" style="border-color:rgba(239,68,68,0.4); color:var(--red); padding: 8px 16px;" onclick="deleteFolder(selectedFolder)">
+                  <i class="fa-solid fa-trash-can"></i> Qovluğu Sil
+                </button>
+              </div>
             </div>
 
             <!-- Folder Student Mapping Panel -->
@@ -950,9 +955,51 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="display:flex; justify-content:space-between; width:100%;">
+        <button type="button" class="btn-primary" style="background:var(--green); border-color:transparent;" id="quick-view-wa-btn">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp Bildirişi
+        </button>
         <button type="button" class="btn-primary" onclick="closeModal('view-student-quick-modal')">Bağla</button>
       </div>
+    </div>
+  </div>
+
+  <!-- WHATSAPP SENDER MODAL -->
+  <div id="whatsapp-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-brands fa-whatsapp" style="color:var(--green);"></i> WhatsApp Qəbul Bildirişi</h3>
+        <button class="modal-close" onclick="closeModal('whatsapp-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleSendWhatsApp(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Şagird</label>
+            <input type="text" id="wa-student-name" readonly style="background:rgba(255,255,255,0.05); color:var(--text-dim);">
+          </div>
+          <div class="form-group">
+            <label>Valideynin Adı</label>
+            <input type="text" id="wa-parent-name" placeholder="Məs. Əli bəy" required>
+          </div>
+          <div class="form-group">
+            <label>Valideynin Telefon Nömrəsi</label>
+            <input type="text" id="wa-parent-phone" placeholder="Məs. +994508252533" required>
+            <span style="font-size:10px; color:var(--text-dim);">Ölkə kodu ilə daxil edin (məs. +994...)</span>
+          </div>
+          <div class="form-group">
+            <label>Universitet (Qəbul Olunduğu)</label>
+            <input type="text" id="wa-university-name" placeholder="Məs. Dokuz Eylül Üniversitesi" required>
+          </div>
+          <div class="form-group">
+            <label>Mesaj Şablonu (Önizləmə)</label>
+            <textarea id="wa-message-preview" readonly style="min-height:110px; background:rgba(255,255,255,0.05); font-size:12px; line-height:1.5; color:var(--text-dim); resize:none;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('whatsapp-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary" style="background:var(--green); border-color:transparent;"><i class="fa-brands fa-whatsapp"></i> WhatsApp ilə Göndər</button>
+        </div>
+      </form>
     </div>
   </div>
 
