@@ -364,7 +364,7 @@ app.put('/api/students/:id', (req, res) => {
   const student = db.students.find(s => s.id === req.params.id);
   if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
 
-  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields } = req.body;
+  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, parentName, parentPhone } = req.body;
   if (name !== undefined) student.name = name;
   if (surname !== undefined) student.surname = surname;
   if (passportNo !== undefined) student.passportNo = passportNo;
@@ -373,6 +373,8 @@ app.put('/api/students/:id', (req, res) => {
   if (passIssueDate !== undefined) student.passIssueDate = passIssueDate;
   if (passExpiryDate !== undefined) student.passExpiryDate = passExpiryDate;
   if (customFields !== undefined) student.customFields = customFields;
+  if (parentName !== undefined) student.parentName = parentName;
+  if (parentPhone !== undefined) student.parentPhone = parentPhone;
 
   addActivityLog(req.body.operator || "Sistem", `Tələbə məlumatları düzəliş edildi: ${student.name} ${student.surname}`);
   saveDB(db);
@@ -551,6 +553,20 @@ app.post('/api/applications', (req, res) => {
   io.emit('dataChanged', { type: 'application', action: 'create' });
 
   res.json({ success: true, application: newApp, verification: verificationItem });
+});
+
+app.post('/api/applications/:id/admission-result', (req, res) => {
+  const { result, operator } = req.body;
+  const appItem = db.applications.find(a => a.id === req.params.id);
+  if (!appItem) return res.status(404).json({ success: false, message: "Müraciət tapılmadı." });
+
+  appItem.admissionResult = result; // 'Qəbul' or 'Rədd'
+  
+  addActivityLog(operator || "Sistem", `${appItem.studentName} üçün ${appItem.universityName} müraciəti qərarı: ${result}`);
+  saveDB(db);
+  
+  io.emit('dataChanged', { type: 'application', action: 'update', id: appItem.id });
+  res.json({ success: true, application: appItem });
 });
 
 // Re-send single application to verification

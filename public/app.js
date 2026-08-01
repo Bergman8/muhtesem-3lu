@@ -467,7 +467,7 @@ function renderStudentsView() {
       </td>
       <td>
         <div style="display:flex; gap:6px;">
-          <button class="btn-primary" style="padding:4px 8px; font-size:12px; background:var(--green); border-color:transparent;" onclick="event.stopPropagation(); openWhatsAppModal('${s.id}')">
+          <button class="btn-primary" style="padding:4px 8px; font-size:12px; background:var(--green); border-color:transparent;" onclick="event.stopPropagation(); openWhatsAppContactModal('${s.id}')">
             <i class="fa-brands fa-whatsapp"></i> WhatsApp
           </button>
           <button class="btn-primary" style="padding:4px 8px; font-size:12px; background:var(--blue);" onclick="event.stopPropagation(); openStudentQuickView('${s.id}')">
@@ -536,7 +536,7 @@ function openStudentQuickView(id) {
   if (waBtn) {
     waBtn.onclick = () => {
       closeModal('view-student-quick-modal');
-      openWhatsAppModal(s.id);
+      openWhatsAppContactModal(s.id);
     };
   }
 
@@ -917,14 +917,23 @@ function renderUniversityDetailPanel() {
                 <th>PASAPORT NO</th>
                 <th>BAŞVURU FORMU</th>
                 <th>YOXLANIŞ STATUSU</th>
+                <th>QƏBUL DURUMU</th>
+                <th style="width:200px;">ƏMƏLİYYATLAR</th>
               </tr>
             </thead>
             <tbody>
-              ${uniApps.length === 0 ? `<tr><td colspan="4" class="text-center">Hələ başvuru edən olmayıb.</td></tr>` : 
+              ${uniApps.length === 0 ? `<tr><td colspan="6" class="text-center">Hələ başvuru edən olmayıb.</td></tr>` : 
                 uniApps.map(app => {
                   let badgeClass = "red";
                   if (app.status === "Kontrol Ediliyor") badgeClass = "yellow";
                   else if (app.status === "Kontrol Edildi") badgeClass = "green";
+
+                  let resultBadge = `<span class="badge-status" style="background:rgba(255,255,255,0.05); color:var(--text-dim);">Gözlənilir</span>`;
+                  if (app.admissionResult === 'Qəbul') {
+                    resultBadge = `<span class="badge-status green" style="font-weight:bold;"><i class="fa-solid fa-circle-check"></i> QƏBUL</span>`;
+                  } else if (app.admissionResult === 'Rədd') {
+                    resultBadge = `<span class="badge-status red" style="font-weight:bold;"><i class="fa-solid fa-circle-xmark"></i> RET</span>`;
+                  }
 
                   return `
                     <tr style="cursor:pointer" onclick="openApplicantDetailModal('${app.id}')">
@@ -932,6 +941,17 @@ function renderUniversityDetailPanel() {
                       <td>${app.passportNo}</td>
                       <td><span class="badge-count" style="background:rgba(99,102,241,0.2); color:#818cf8;">Form #${app.id.substr(-5)}</span></td>
                       <td><span class="badge-status ${badgeClass}">${app.status}</span></td>
+                      <td>${resultBadge}</td>
+                      <td>
+                        <div style="display:flex; gap:6px;">
+                          <button class="btn-primary" style="padding:4px 8px; font-size:11px; background:var(--green); border-color:transparent; display:inline-flex; align-items:center; gap:4px;" onclick="event.stopPropagation(); setApplicationResult('${app.id}', 'Qəbul')">
+                            <i class="fa-solid fa-check"></i> Qəbul
+                          </button>
+                          <button class="btn-secondary" style="padding:4px 8px; font-size:11px; color:var(--red); border-color:rgba(239,68,68,0.4); display:inline-flex; align-items:center; gap:4px;" onclick="event.stopPropagation(); setApplicationResult('${app.id}', 'Rədd')">
+                            <i class="fa-solid fa-xmark"></i> Rədd
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   `;
                 }).join('')
@@ -3061,5 +3081,135 @@ function showChatNotification(message) {
     }
   }, 6000);
 }
+
+// -------------------------------------------------------------
+// 12. WHATSAPP CONTACT DETAILS MANAGEMENT
+// -------------------------------------------------------------
+function openWhatsAppContactModal(studentId) {
+  const std = allStudents.find(s => s.id === studentId);
+  if (!std) return;
+
+  document.getElementById('wac-student-id').value = std.id;
+  document.getElementById('wac-student-name').value = `${std.name} ${std.surname}`;
+
+  // Prefill parent name and phone
+  let parentName = std.parentName || "";
+  let parentPhone = std.parentPhone || "";
+
+  // If not explicitly set in parentName/Phone, attempt to parse from custom fields
+  if (!parentName || !parentPhone) {
+    if (std.customFields && typeof std.customFields === 'object') {
+      Object.entries(std.customFields).forEach(([key, val]) => {
+        const kNorm = key.toLowerCase();
+        if (!parentName && (kNorm.includes('ata') || kNorm.includes('ana') || kNorm.includes('valideyn') || kNorm.includes('parent') || kNorm.includes('bağı') || kNorm.includes('bagi'))) {
+          parentName = val;
+        }
+        if (!parentPhone && (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel'))) {
+          parentPhone = val;
+        }
+      });
+    }
+  }
+
+  document.getElementById('wac-parent-name').value = parentName;
+  document.getElementById('wac-parent-phone').value = parentPhone;
+
+  openModal('whatsapp-contact-modal');
+}
+
+async function handleSaveWhatsAppContact(e) {
+  e.preventDefault();
+  const id = document.getElementById('wac-student-id').value;
+  const parentName = document.getElementById('wac-parent-name').value.trim();
+  const parentPhone = document.getElementById('wac-parent-phone').value.trim();
+
+  try {
+    const res = await fetch(`/api/students/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        parentName,
+        parentPhone,
+        operator: currentUser.name
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("WhatsApp əlaqə məlumatları uğurla yadda saxlanıldı!");
+      closeModal('whatsapp-contact-modal');
+      await loadAllData();
+      renderStudentsView();
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert("Yadda saxlanılarkən xəta baş verdi: " + err.message);
+  }
+}
+
+// -------------------------------------------------------------
+// 13. UNIVERSITY ADMISSION RESULT SETTER
+// -------------------------------------------------------------
+async function setApplicationResult(appId, result) {
+  const appItem = allApplications.find(a => a.id === appId);
+  if (!appItem) return;
+
+  if (!confirm(`"${appItem.studentName}" şagirdinin "${appItem.universityName}" müraciəti üçün qərarı "${result.toUpperCase()}" olaraq qeyd etmək istəyirsiniz?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/applications/${appId}/admission-result`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        result,
+        operator: currentUser.name
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`Qəbul statusu "${result}" olaraq uğurla qeyd olundu.`);
+      await loadAllData();
+      renderUniversitiesView();
+
+      // Attempt to send automatic WhatsApp message to the parent
+      const std = allStudents.find(s => s.id === appItem.studentId);
+      if (std && std.parentPhone) {
+        const pName = std.parentName || "[Valideyn]";
+        const sName = `${std.name} ${std.surname}`;
+        const uName = appItem.universityName;
+        
+        let text = "";
+        if (result === 'Qəbul') {
+          text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} qəbul müraciəti uğurla tamamlanmış və QƏBUL gəlmişdir! Təbrik edirik! 🎉\n\nHörmətlə, Muhteşem 3lü Kursu.`;
+        } else {
+          text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} müraciətinə təəssüf ki, RET gəlmişdir.\n\nDigər müraciətlərimizi yoxlamağa devam edirik.\n\nHörmətlə, Muhteşem 3lü Kursu.`;
+        }
+
+        // Clean phone number
+        let phoneClean = std.parentPhone.replace(/[^0-9]/g, '');
+        if (phoneClean.startsWith('0')) {
+          phoneClean = '994' + phoneClean.substring(1);
+        } else if (phoneClean.startsWith('50') || phoneClean.startsWith('51') || phoneClean.startsWith('55') || phoneClean.startsWith('70') || phoneClean.startsWith('77') || phoneClean.startsWith('99')) {
+          if (phoneClean.length === 9) {
+            phoneClean = '994' + phoneClean;
+          }
+        }
+
+        const encodedText = encodeURIComponent(text);
+        const waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`;
+        window.open(waUrl, '_blank');
+      } else {
+        alert("WhatsApp nömrəsi tapılmadığı üçün bildiriş göndərilmədi. Zəhmət olmasa, əvvəlcə şagird siyahısından nömrəni daxil edin.");
+      }
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert("Qəbul statusu qeyd edilərkən xəta baş verdi: " + err.message);
+  }
+}
+
 
 

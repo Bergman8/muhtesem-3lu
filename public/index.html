@@ -1003,6 +1003,38 @@
     </div>
   </div>
 
+  <!-- WHATSAPP CONTACT DETAILS MODAL -->
+  <div id="whatsapp-contact-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-brands fa-whatsapp" style="color:var(--green);"></i> WhatsApp Əlaqə Məlumatları</h3>
+        <button class="modal-close" onclick="closeModal('whatsapp-contact-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleSaveWhatsAppContact(event)">
+        <input type="hidden" id="wac-student-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Şagird</label>
+            <input type="text" id="wac-student-name" readonly style="background:rgba(255,255,255,0.05); color:var(--text-dim);">
+          </div>
+          <div class="form-group">
+            <label>Valideynin Adı (Ata / Ana adı)</label>
+            <input type="text" id="wac-parent-name" placeholder="Məs. Əli bəy" required>
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Nömrəsi (Telefon)</label>
+            <input type="text" id="wac-parent-phone" placeholder="Məs. +994508252533" required>
+            <span style="font-size:10px; color:var(--text-dim);">Ölkə kodu ilə daxil edin (məs. +994...)</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('whatsapp-contact-modal')">Ləğv Et</button>
+          <button type="submit" class="btn-primary" style="background:var(--green); border-color:transparent;"><i class="fa-solid fa-floppy-disk"></i> Yadda Saxla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- UPLOAD DOCUMENT MODAL -->
   <div id="upload-document-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
