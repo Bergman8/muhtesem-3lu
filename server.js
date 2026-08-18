@@ -414,7 +414,7 @@ app.put('/api/students/:id', (req, res) => {
   const student = db.students.find(s => s.id === req.params.id);
   if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
 
-  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, parentName, parentPhone, emailPassword } = req.body;
+  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, parentName, parentPhone, emailPassword, parentType } = req.body;
   if (name !== undefined) student.name = name;
   if (surname !== undefined) student.surname = surname;
   if (passportNo !== undefined) student.passportNo = passportNo;
@@ -425,6 +425,7 @@ app.put('/api/students/:id', (req, res) => {
   if (customFields !== undefined) student.customFields = customFields;
   if (parentName !== undefined) student.parentName = parentName;
   if (parentPhone !== undefined) student.parentPhone = parentPhone;
+  if (parentType !== undefined) student.parentType = parentType;
   if (emailPassword !== undefined) student.emailPassword = emailPassword;
 
   addActivityLog(req.body.operator || "Sistem", `Tələbə məlumatları düzəliş edildi: ${student.name} ${student.surname}`);

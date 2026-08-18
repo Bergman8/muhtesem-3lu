@@ -1051,54 +1051,54 @@
         </div>
       </div>
       <div class="modal-footer" style="display:flex; justify-content:space-between; width:100%;">
-        <button type="button" class="btn-primary" id="quick-view-sms-btn" style="background:var(--primary); border-color:transparent;">
-          <i class="fa-solid fa-comment-sms"></i> SMS Bildirişi
+        <button type="button" class="btn-primary" id="quick-view-wa-btn" style="background:var(--green); border-color:transparent;">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp Bildirişi
         </button>
         <button type="button" class="btn-secondary" onclick="closeModal('view-student-quick-modal')">Bağla</button>
       </div>
     </div>
 
-    <!-- SMS SENDER MODAL -->
-    <div id="sms-modal" class="modal-overlay" style="display: none;">
+    <!-- WHATSAPP SENDER MODAL -->
+    <div id="whatsapp-modal" class="modal-overlay" style="display: none;">
       <div class="modal-card">
         <div class="modal-header">
-          <h3><i class="fa-solid fa-comment-sms" style="color:var(--primary);"></i> SMS Qəbul/Rədd Bildirişi</h3>
-          <button class="modal-close" onclick="closeModal('sms-modal')">&times;</button>
+          <h3><i class="fa-brands fa-whatsapp" style="color:var(--green);"></i> WhatsApp Qəbul/Rədd Bildirişi</h3>
+          <button class="modal-close" onclick="closeModal('whatsapp-modal')">&times;</button>
         </div>
-        <form onsubmit="handleSendSMS(event)">
+        <form onsubmit="handleSendWhatsApp(event)">
           <div class="modal-body">
             <div class="form-group">
               <label>Şagird</label>
-              <input type="text" id="sms-student-name" readonly style="background:rgba(255,255,255,0.05); color:var(--text-dim);">
+              <input type="text" id="wa-student-name" readonly style="background:rgba(255,255,255,0.05); color:var(--text-dim);">
             </div>
             <div class="form-group">
               <label>Valideynin Adı</label>
-              <input type="text" id="sms-parent-name" placeholder="Məs. Əli bəy" required>
+              <input type="text" id="wa-parent-name" placeholder="Məs. Əli" required>
             </div>
             <div class="form-group">
               <label>Valideynin Telefon Nömrəsi</label>
-              <input type="text" id="sms-parent-phone" placeholder="Məs. +994508252533" required>
+              <input type="text" id="wa-parent-phone" placeholder="Məs. +994508252533" required>
               <span style="font-size:10px; color:var(--text-dim);">Ölkə kodu ilə daxil edin (məs. +994...)</span>
             </div>
             <div class="form-group">
               <label>Universitet (Qəbul/Rədd Olunduğu)</label>
-              <input type="text" id="sms-university-name" placeholder="Məs. Dokuz Eylül Üniversitesi" required>
+              <input type="text" id="wa-university-name" placeholder="Məs. Dokuz Eylül Üniversitesi" required>
             </div>
             <div class="form-group">
               <label>Status</label>
-              <select id="sms-status-select" onchange="updateSmsPreview()" style="width:100%; padding:8px 10px; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:white; border-radius:6px;">
+              <select id="wa-status-select" onchange="updateWhatsAppPreview()" style="width:100%; padding:8px 10px; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:white; border-radius:6px;">
                 <option value="Qəbul">🎉 Qəbul gəldi</option>
                 <option value="Rədd">❌ Rədd gəldi</option>
               </select>
             </div>
             <div class="form-group">
               <label>Mesaj Şablonu (Önizləmə)</label>
-              <textarea id="sms-message-preview" style="min-height:110px; background:rgba(255,255,255,0.05); font-size:12px; line-height:1.5; color:var(--text-dim); resize:none;"></textarea>
+              <textarea id="wa-message-preview" style="min-height:110px; background:rgba(255,255,255,0.05); font-size:12px; line-height:1.5; color:var(--text-dim); resize:none;"></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-secondary" onclick="closeModal('sms-modal')">Ləğv Et</button>
-            <button type="submit" class="btn-primary" style="display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-comment-sms"></i> SMS Göndər</button>
+            <button type="button" class="btn-secondary" onclick="closeModal('whatsapp-modal')">Ləğv Et</button>
+            <button type="submit" class="btn-primary" style="background:var(--green); border-color:transparent; display:flex; align-items:center; gap:6px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp ilə Göndər</button>
           </div>
         </form>
       </div>

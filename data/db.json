@@ -3336,6 +3336,19 @@
       "createdAt": "2026-08-18T17:46:18.582Z",
       "status": "Kontrol Edildi",
       "admissionResult": "Rədd"
+    },
+    {
+      "id": "app-1787075424457",
+      "studentId": "std-1785171374877-1",
+      "studentName": "ADNAN MAMMADOV",
+      "passportNo": "C05452095",
+      "universityId": "uni-24",
+      "universityName": "Çukurova Üniversitesi",
+      "round": "1. Tur",
+      "createdBy": "Afət xanım",
+      "createdAt": "2026-08-18T17:50:24.457Z",
+      "status": "Kontrol Bekleniyor",
+      "admissionResult": "Qəbul"
     }
   ],
   "verifications": [
@@ -3370,6 +3383,22 @@
       "status": "Kontrol Edildi",
       "deadlineDate": "31.08.2026",
       "updatedAt": "2026-08-18T17:48:08.728Z"
+    },
+    {
+      "id": "ver-1787075424457",
+      "applicationId": "app-1787075424457",
+      "studentId": "std-1785171374877-1",
+      "studentName": "ADNAN MAMMADOV",
+      "passportNo": "C05452095",
+      "universityId": "uni-24",
+      "universityName": "Çukurova Üniversitesi",
+      "round": "1. Tur",
+      "createdBy": "Afət xanım",
+      "checkedBy": null,
+      "previousCheckedBy": null,
+      "status": "Kontrol Bekleniyor",
+      "deadlineDate": "31.08.2026",
+      "updatedAt": "2026-08-18T17:50:24.457Z"
     }
   ],
   "books": [
@@ -3384,6 +3413,41 @@
   ],
   "sales": [],
   "activityLogs": [
+    {
+      "id": "log-1787075493195-bg65",
+      "timestamp": "2026-08-18T17:51:33.195Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787075428395-9sqa",
+      "timestamp": "2026-08-18T17:50:28.395Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV üçün valideynə SMS göndərildi -> Nömrə: +994554321027",
+      "details": ""
+    },
+    {
+      "id": "log-1787075426960-omvw",
+      "timestamp": "2026-08-18T17:50:26.960Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV üçün Çukurova Üniversitesi müraciəti qərarı: Qəbul",
+      "details": ""
+    },
+    {
+      "id": "log-1787075424457-z98r",
+      "timestamp": "2026-08-18T17:50:24.457Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV -> Çukurova Üniversitesi başvuru olundu. Yoxlanış bölməsinə göndərildi.",
+      "details": ""
+    },
+    {
+      "id": "log-1787075407992-4u56",
+      "timestamp": "2026-08-18T17:50:07.992Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787075288728-d9wk",
       "timestamp": "2026-08-18T17:48:08.728Z",
@@ -19493,6 +19557,24 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787075493195-14ce",
+      "timestamp": "2026-08-18T17:51:33.195Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787075407992-ntg6",
+      "timestamp": "2026-08-18T17:50:07.992Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787074546046-y1z1",
       "timestamp": "2026-08-18T17:35:46.046Z",
