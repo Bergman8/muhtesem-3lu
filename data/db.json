@@ -3414,6 +3414,13 @@
   "sales": [],
   "activityLogs": [
     {
+      "id": "log-1787075820253-9idr",
+      "timestamp": "2026-08-18T17:57:00.253Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
       "id": "log-1787075750115-gurp",
       "timestamp": "2026-08-18T17:55:50.115Z",
       "user": "Afət xanım",
@@ -19571,6 +19578,15 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787075820253-flvv",
+      "timestamp": "2026-08-18T17:57:00.253Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787075750115-yqru",
       "timestamp": "2026-08-18T17:55:50.115Z",

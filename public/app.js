@@ -3120,27 +3120,56 @@ function openWhatsAppContactModal(studentId) {
   document.getElementById('wac-student-id').value = std.id;
   document.getElementById('wac-student-name').value = `${std.name} ${std.surname}`;
 
-  let parentName = std.parentName || "";
-  let parentPhone = std.parentPhone || "";
-  const parentType = std.parentType || "Ata";
+  // Find Ata Adı / Ana Adı in customFields
+  let ataName = "";
+  let anaName = "";
+  let parsedPhone = "";
 
-  if (!parentName || !parentPhone) {
-    if (std.customFields && typeof std.customFields === 'object') {
-      Object.entries(std.customFields).forEach(([key, val]) => {
-        const kNorm = key.toLowerCase();
-        if (!parentName && (kNorm.includes('ata') || kNorm.includes('ana') || kNorm.includes('valideyn') || kNorm.includes('parent') || kNorm.includes('bağı') || kNorm.includes('bagi'))) {
-          parentName = val;
-        }
-        if (!parentPhone && (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel'))) {
-          parentPhone = val;
-        }
-      });
-    }
+  if (std.customFields && typeof std.customFields === 'object') {
+    Object.entries(std.customFields).forEach(([key, val]) => {
+      const kNorm = key.toLowerCase();
+      if (kNorm === 'ata' || kNorm === 'ata adı' || kNorm === 'ata adi' || (kNorm.includes('ata') && kNorm.includes('ad'))) {
+        ataName = val;
+      }
+      if (kNorm === 'ana' || kNorm === 'ana adı' || kNorm === 'ana adi' || (kNorm.includes('ana') && kNorm.includes('ad'))) {
+        anaName = val;
+      }
+      if (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel')) {
+        parsedPhone = val;
+      }
+    });
   }
+
+  const parentTypeSelect = document.getElementById('wac-parent-type');
+  parentTypeSelect.dataset.ataName = ataName;
+  parentTypeSelect.dataset.anaName = anaName;
+
+  const optAta = parentTypeSelect.querySelector('option[value="Ata"]');
+  const optAna = parentTypeSelect.querySelector('option[value="Ana"]');
+  
+  optAta.textContent = `👨 Ata (${ataName || 'Ad tapılmadı'})`;
+  optAna.textContent = `👩 Ana (${anaName || 'Ad tapılmadı'})`;
+
+  const parentType = std.parentType || "Ata";
+  parentTypeSelect.value = parentType;
+
+  let parentName = std.parentName;
+  if (!parentName) {
+    parentName = (parentType === "Ana") ? anaName : ataName;
+  }
+  let parentPhone = std.parentPhone || parsedPhone || "";
 
   document.getElementById('wac-parent-name').value = parentName;
   document.getElementById('wac-parent-phone').value = parentPhone;
-  document.getElementById('wac-parent-type').value = parentType;
+
+  parentTypeSelect.onchange = () => {
+    const selectedType = parentTypeSelect.value;
+    if (selectedType === "Ana") {
+      document.getElementById('wac-parent-name').value = parentTypeSelect.dataset.anaName || "";
+    } else {
+      document.getElementById('wac-parent-name').value = parentTypeSelect.dataset.ataName || "";
+    }
+  };
 
   openModal('whatsapp-contact-modal');
 }
