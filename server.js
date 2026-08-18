@@ -1503,6 +1503,10 @@ async function fetchEmails(emailAddress, appPassword) {
     logger: false
   });
 
+  client.on('error', err => {
+    console.error('[IMAP Fetch Client Error]:', err.message);
+  });
+
   await client.connect();
   let lock = await client.getMailboxLock('INBOX');
   let messages = [];
@@ -1512,7 +1516,7 @@ async function fetchEmails(emailAddress, appPassword) {
       const startRange = Math.max(1, count - 19); // fetch last 20 emails
       const range = `${startRange}:${count}`;
 
-      for await (let msg of client.fetch(range, { envelope: true, source: true })) {
+      for await (let msg of client.fetch(range, { envelope: true, source: true, flags: true })) {
         let parsed;
         try {
           parsed = await simpleParser(msg.source);
@@ -1649,6 +1653,10 @@ async function backgroundEmailPoller() {
         pass: std.emailPassword
       },
       logger: false
+    });
+
+    client.on('error', err => {
+      console.warn('[IMAP Poll Client Error]:', err.message);
     });
 
     await client.connect();
