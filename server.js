@@ -1491,7 +1491,7 @@ io.on('connection', (socket) => {
 // -------------------------------------------------------------
 // 📨 CENTRAL EMAIL CLIENT API
 // -------------------------------------------------------------
-async function fetchEmails(emailAddress, appPassword) {
+async function fetchEmails(emailAddress, appPassword, folderName = 'INBOX', page = 1, limit = 15) {
   const client = new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,
@@ -1508,49 +1508,57 @@ async function fetchEmails(emailAddress, appPassword) {
   });
 
   await client.connect();
-  let lock = await client.getMailboxLock('INBOX');
+  let lock = await client.getMailboxLock(folderName);
   let messages = [];
+  let totalCount = 0;
   try {
-    const count = client.mailbox.exists;
-    if (count > 0) {
-      const startRange = Math.max(1, count - 19); // fetch last 20 emails
-      const range = `${startRange}:${count}`;
+    totalCount = client.mailbox.exists;
+    if (totalCount > 0) {
+      const pageInt = parseInt(page) || 1;
+      const limitInt = parseInt(limit) || 15;
+      
+      const end = totalCount - (pageInt - 1) * limitInt;
+      const start = Math.max(1, end - limitInt + 1);
 
-      for await (let msg of client.fetch(range, { envelope: true, source: true, flags: true })) {
-        let parsed;
-        try {
-          parsed = await simpleParser(msg.source);
-        } catch (parseErr) {
-          console.error("Error parsing email source:", parseErr);
-          parsed = {
-            subject: msg.envelope.subject || '(Mövzu Yoxdur)',
-            from: msg.envelope.from ? msg.envelope.from[0].name || msg.envelope.from[0].address : '-',
-            to: msg.envelope.to ? msg.envelope.to[0].address : '-',
-            date: msg.envelope.date || new Date(),
-            text: 'Məktubun oxunması zamanı xəta yarandı.',
-            html: 'Məktubun oxunması zamanı xəta yarandı.'
-          };
+      if (end >= 1 && start <= end) {
+        const range = `${start}:${end}`;
+
+        for await (let msg of client.fetch(range, { envelope: true, source: true, flags: true })) {
+          let parsed;
+          try {
+            parsed = await simpleParser(msg.source);
+          } catch (parseErr) {
+            console.error("Error parsing email source:", parseErr);
+            parsed = {
+              subject: msg.envelope.subject || '(Mövzu Yoxdur)',
+              from: msg.envelope.from ? msg.envelope.from[0].name || msg.envelope.from[0].address : '-',
+              to: msg.envelope.to ? msg.envelope.to[0].address : '-',
+              date: msg.envelope.date || new Date(),
+              text: 'Məktubun oxunması zamanı xəta yarandı.',
+              html: 'Məktubun oxunması zamanı xəta yarandı.'
+            };
+          }
+          
+          messages.unshift({
+            id: msg.uid.toString(),
+            uid: msg.uid,
+            messageId: parsed.messageId || msg.envelope.messageId,
+            subject: parsed.subject || msg.envelope.subject || '(Mövzu Yoxdur)',
+            from: parsed.from ? parsed.from.text : (msg.envelope.from ? msg.envelope.from[0].address : '-'),
+            to: parsed.to ? parsed.to.text : (msg.envelope.to ? msg.envelope.to[0].address : '-'),
+            date: parsed.date || msg.envelope.date || new Date(),
+            text: parsed.text || '',
+            html: parsed.html || parsed.textAsHtml || parsed.text || '',
+            unread: !msg.flags.has('\\Seen')
+          });
         }
-        
-        messages.unshift({
-          id: msg.uid.toString(),
-          uid: msg.uid,
-          messageId: parsed.messageId || msg.envelope.messageId,
-          subject: parsed.subject || msg.envelope.subject || '(Mövzu Yoxdur)',
-          from: parsed.from ? parsed.from.text : (msg.envelope.from ? msg.envelope.from[0].address : '-'),
-          to: parsed.to ? parsed.to.text : (msg.envelope.to ? msg.envelope.to[0].address : '-'),
-          date: parsed.date || msg.envelope.date || new Date(),
-          text: parsed.text || '',
-          html: parsed.html || parsed.textAsHtml || parsed.text || '',
-          unread: !msg.flags.has('\\Seen')
-        });
       }
     }
   } finally {
     lock.release();
   }
   await client.logout();
-  return messages;
+  return { emails: messages, totalCount };
 }
 
 app.get('/api/emails/:studentId', async (req, res) => {
@@ -1564,9 +1572,17 @@ app.get('/api/emails/:studentId', async (req, res) => {
     });
   }
 
+  const { folder, page, limit } = req.query;
+
   try {
-    const emails = await fetchEmails(student.email, student.emailPassword);
-    res.json({ success: true, emails });
+    const result = await fetchEmails(student.email, student.emailPassword, folder || 'INBOX', page || 1, limit || 15);
+    res.json({ 
+      success: true, 
+      emails: result.emails, 
+      totalCount: result.totalCount,
+      currentPage: parseInt(page) || 1,
+      totalPages: Math.ceil(result.totalCount / (parseInt(limit) || 15))
+    });
   } catch (err) {
     console.error("IMAP Fetch Error:", err);
     let errMsg = "Gmail bağlantısı qurularkən xəta baş verdi: " + err.message;

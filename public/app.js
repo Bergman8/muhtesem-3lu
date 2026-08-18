@@ -3226,6 +3226,17 @@ async function setApplicationResult(appId, result) {
 let selectedEmailStudentId = null;
 let selectedEmailMsgId = null;
 let loadedStudentEmails = [];
+let currentEmailFolder = 'INBOX';
+let currentEmailPage = 1;
+let totalEmailPages = 1;
+
+function changeEmailFolder() {
+  currentEmailFolder = document.getElementById('email-folder-select').value;
+  currentEmailPage = 1;
+  if (selectedEmailStudentId) {
+    fetchEmailsForStudent(selectedEmailStudentId, currentEmailFolder, currentEmailPage);
+  }
+}
 
 function renderEmailsView() {
   const listContainer = document.getElementById('email-students-list');
@@ -3272,6 +3283,11 @@ function selectEmailStudent(studentId) {
   selectedEmailStudentId = studentId;
   selectedEmailMsgId = null;
   loadedStudentEmails = [];
+  currentEmailPage = 1;
+  currentEmailFolder = 'INBOX';
+  
+  const folderSelect = document.getElementById('email-folder-select');
+  if (folderSelect) folderSelect.value = 'INBOX';
   
   renderEmailsView();
 
@@ -3280,25 +3296,31 @@ function selectEmailStudent(studentId) {
   document.getElementById('email-detail-content').style.display = 'none';
 
   // Load emails
-  fetchEmailsForStudent(studentId);
+  fetchEmailsForStudent(studentId, currentEmailFolder, currentEmailPage);
 }
 
-async function fetchEmailsForStudent(studentId) {
+async function fetchEmailsForStudent(studentId, folder = 'INBOX', page = 1) {
   const container = document.getElementById('email-list-container');
   const loading = document.getElementById('email-list-loading');
+  const pagControls = document.getElementById('email-pagination-controls');
   if (!container || !loading) return;
 
   container.innerHTML = '';
   loading.style.display = 'block';
+  if (pagControls) pagControls.innerHTML = '';
 
   try {
-    const res = await fetch(`/api/emails/${studentId}`);
+    const res = await fetch(`/api/emails/${studentId}?folder=${encodeURIComponent(folder)}&page=${page}&limit=15`);
     const data = await res.json();
     loading.style.display = 'none';
 
     if (data.success) {
       loadedStudentEmails = data.emails || [];
+      currentEmailPage = data.currentPage || 1;
+      totalEmailPages = data.totalPages || 1;
+
       renderEmailList();
+      renderEmailPagination();
     } else {
       container.innerHTML = `
         <div style="padding:16px; color:var(--red); font-size:12px; line-height:1.4; text-align:center;">
@@ -3344,14 +3366,71 @@ function renderEmailList() {
   }).join('');
 }
 
+function renderEmailPagination() {
+  const pagControls = document.getElementById('email-pagination-controls');
+  if (!pagControls) return;
+
+  if (totalEmailPages <= 1) {
+    pagControls.innerHTML = `<span style="color:var(--text-dim);">Səhifə 1 / 1</span>`;
+    return;
+  }
+
+  let html = '';
+
+  // Previous
+  if (currentEmailPage > 1) {
+    html += `<button class="btn btn-sm" style="padding: 2px 6px; font-size:11px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white; cursor:pointer;" onclick="goToEmailPage(${currentEmailPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
+  } else {
+    html += `<button class="btn btn-sm" style="padding: 2px 6px; font-size:11px; background:transparent; border:1px solid rgba(255,255,255,0.05); color:var(--text-dim);" disabled><i class="fa-solid fa-chevron-left"></i></button>`;
+  }
+
+  // Pages
+  for (let i = 1; i <= totalEmailPages; i++) {
+    if (i === 1 || i === totalEmailPages || (i >= currentEmailPage - 1 && i <= currentEmailPage + 1)) {
+      const isActive = i === currentEmailPage;
+      html += `<button class="btn btn-sm" style="padding: 2px 6px; font-size:11px; min-width:22px; background:${isActive ? 'var(--primary)' : 'rgba(255,255,255,0.05)'}; border:1px solid var(--border); color:white; cursor:pointer; font-weight:${isActive ? '700' : 'normal'}" onclick="goToEmailPage(${i})">${i}</button>`;
+    } else if (i === 2 || i === totalEmailPages - 1) {
+      html += `<button class="btn btn-sm" style="padding: 2px 4px; font-size:11px; background:transparent; border:none; color:var(--text-dim); cursor:pointer;" onclick="promptPageNumber()">...</button>`;
+    }
+  }
+
+  // Next
+  if (currentEmailPage < totalEmailPages) {
+    html += `<button class="btn btn-sm" style="padding: 2px 6px; font-size:11px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white; cursor:pointer;" onclick="goToEmailPage(${currentEmailPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>`;
+  } else {
+    html += `<button class="btn btn-sm" style="padding: 2px 6px; font-size:11px; background:transparent; border:1px solid rgba(255,255,255,0.05); color:var(--text-dim);" disabled><i class="fa-solid fa-chevron-right"></i></button>`;
+  }
+
+  pagControls.innerHTML = html;
+}
+
+function promptPageNumber() {
+  const p = prompt(`Keçmək istədiyiniz səhifəni yazın (1 - ${totalEmailPages}):`);
+  if (p) {
+    const pageNum = parseInt(p);
+    if (pageNum >= 1 && pageNum <= totalEmailPages) {
+      goToEmailPage(pageNum);
+    } else {
+      alert("Yanlış səhifə nömrəsi daxil edilib.");
+    }
+  }
+}
+
+function goToEmailPage(page) {
+  if (page < 1 || page > totalEmailPages) return;
+  currentEmailPage = page;
+  if (selectedEmailStudentId) {
+    fetchEmailsForStudent(selectedEmailStudentId, currentEmailFolder, currentEmailPage);
+  }
+}
+
 function openEmailDetail(msgId) {
   selectedEmailMsgId = msgId;
-  renderEmailList(); // refresh active state visually
+  renderEmailList(); 
 
   const msg = loadedStudentEmails.find(m => m.id === msgId);
   if (!msg) return;
 
-  // Mark Seen locally
   msg.unread = false;
   renderEmailList();
 
@@ -3362,7 +3441,6 @@ function openEmailDetail(msgId) {
   document.getElementById('email-detail-from').textContent = msg.from;
   document.getElementById('email-detail-date').textContent = new Date(msg.date).toLocaleString('az-AZ');
 
-  // Load content into iframe safely to prevent style leaks
   const iframe = document.getElementById('email-detail-iframe');
   if (iframe) {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -3375,21 +3453,45 @@ function openEmailDetail(msgId) {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
               font-size: 14px; 
               line-height: 1.6; 
-              color: #333333; 
-              padding: 16px; 
+              color: #1e293b; 
+              padding: 20px; 
               margin: 0;
+              background-color: #ffffff;
             }
-            img { max-width: 100%; height: auto; }
+            img { max-width: 100% !important; height: auto !important; }
+            table, tr, td, div, span, p {
+              max-width: 100% !important;
+              box-sizing: border-box !important;
+              word-wrap: break-word !important;
+              overflow-wrap: break-word !important;
+            }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            ::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            ::-webkit-scrollbar-track {
+              background: #f1f5f9;
+            }
+            ::-webkit-scrollbar-thumb {
+              background: #cbd5e1;
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background: #94a3b8;
+            }
           </style>
         </head>
-        <body>${msg.html}</body>
+        <body>${msg.html || msg.text || ''}</body>
       </html>
     `;
     doc.write(wrappedHtml);
     doc.close();
   }
 
-  // Threading messageId setup
   document.getElementById('email-reply-msg-id').value = msg.messageId || '';
   document.getElementById('email-reply-text').value = '';
 }

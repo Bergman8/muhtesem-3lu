@@ -545,14 +545,28 @@
               </div>
             </div>
 
-            <!-- Middle panel: Email List -->
+             <!-- Middle panel: Email List -->
             <div class="email-list-panel" style="width: 320px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; padding: 12px; box-sizing: border-box;">
-              <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 15px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-inbox" style="color:var(--primary);"></i> Gələn Məktublar</h3>
+              <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-inbox" style="color:var(--primary);"></i> E-poçtlar</h3>
+              
+              <!-- Folder Selector Dropdown -->
+              <select id="email-folder-select" class="select-input" onchange="changeEmailFolder()" style="margin-bottom: 10px; font-size: 12px; padding: 6px 8px; background: rgba(0,0,0,0.3); border-color: var(--border); color: white;">
+                <option value="INBOX">📥 Gələn Qutusu (Inbox)</option>
+                <option value="[Gmail]/All Mail">📂 Arxiv (All Mail)</option>
+                <option value="[Gmail]/Spam">⚠️ Spam (Spam)</option>
+                <option value="[Gmail]/Trash">🗑️ Zibil Qutusu (Trash)</option>
+              </select>
+
               <div id="email-list-loading" style="display: none; text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px;">
                 <i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> Qoşulur və yüklənir...
               </div>
               <div id="email-list-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
                 <div class="empty-state" style="text-align: center; color: var(--text-dim); padding-top: 40px; font-size: 13px;">Şagird seçilməyib və ya məktub yoxdur.</div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div id="email-pagination-controls" style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; border-top: 1px solid var(--border); padding-top: 8px;">
+                <!-- Filled via JS -->
               </div>
             </div>
 
