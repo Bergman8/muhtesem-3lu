@@ -2249,7 +2249,9 @@
         "Tercihlər": "TIP  TÜRKCE"
       },
       "addedAt": "2026-07-27T16:56:14.877Z",
-      "emailPassword": "nunf xias mjyh vfem"
+      "emailPassword": "nunf xias mjyh vfem",
+      "parentName": "VÜQAR",
+      "parentPhone": "+994554321027"
     },
     {
       "id": "std-1785171374877-2",
@@ -3321,6 +3323,19 @@
       "createdBy": "Kərim",
       "createdAt": "2026-07-27T18:33:52.680Z",
       "status": "Kontrol Edildi"
+    },
+    {
+      "id": "app-1787075178582",
+      "studentId": "std-1785171374877-1",
+      "studentName": "ADNAN MAMMADOV",
+      "passportNo": "C05452095",
+      "universityId": "uni-11",
+      "universityName": "Dokuz Eylül Üniversitesi",
+      "round": "1. Tur",
+      "createdBy": "Afət xanım",
+      "createdAt": "2026-08-18T17:46:18.582Z",
+      "status": "Kontrol Edildi",
+      "admissionResult": "Rədd"
     }
   ],
   "verifications": [
@@ -3339,6 +3354,22 @@
       "status": "Kontrol Edildi",
       "deadlineDate": "31.08.2026",
       "updatedAt": "2026-07-27T18:34:10.911Z"
+    },
+    {
+      "id": "ver-1787075178582",
+      "applicationId": "app-1787075178582",
+      "studentId": "std-1785171374877-1",
+      "studentName": "ADNAN MAMMADOV",
+      "passportNo": "C05452095",
+      "universityId": "uni-11",
+      "universityName": "Dokuz Eylül Üniversitesi",
+      "round": "1. Tur",
+      "createdBy": "Afət xanım",
+      "checkedBy": "Afət xanım",
+      "previousCheckedBy": null,
+      "status": "Kontrol Edildi",
+      "deadlineDate": "31.08.2026",
+      "updatedAt": "2026-08-18T17:48:08.728Z"
     }
   ],
   "books": [
@@ -3353,6 +3384,62 @@
   ],
   "sales": [],
   "activityLogs": [
+    {
+      "id": "log-1787075288728-d9wk",
+      "timestamp": "2026-08-18T17:48:08.728Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV (Dokuz Eylül Üniversitesi) yoxlanışı tamamlandı (Yoxlanıldı).",
+      "details": ""
+    },
+    {
+      "id": "log-1787075287565-cugv",
+      "timestamp": "2026-08-18T17:48:07.565Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV (Dokuz Eylül Üniversitesi) yoxlanışını öz üzərinə götürdü (Yoxlanılır).",
+      "details": ""
+    },
+    {
+      "id": "log-1787075236382-vjm8",
+      "timestamp": "2026-08-18T17:47:16.382Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV üçün Dokuz Eylül Üniversitesi müraciəti qərarı: Rədd",
+      "details": ""
+    },
+    {
+      "id": "log-1787075181836-gzqs",
+      "timestamp": "2026-08-18T17:46:21.836Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV üçün Dokuz Eylül Üniversitesi müraciəti qərarı: Qəbul",
+      "details": ""
+    },
+    {
+      "id": "log-1787075178582-at3h",
+      "timestamp": "2026-08-18T17:46:18.582Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV -> Dokuz Eylül Üniversitesi başvuru olundu. Yoxlanış bölməsinə göndərildi.",
+      "details": ""
+    },
+    {
+      "id": "log-1787075158562-hu6n",
+      "timestamp": "2026-08-18T17:45:58.562Z",
+      "user": "Afət xanım",
+      "action": "Tələbə məlumatları düzəliş edildi: ADNAN MAMMADOV",
+      "details": ""
+    },
+    {
+      "id": "log-1787074581354-i1ka",
+      "timestamp": "2026-08-18T17:36:21.354Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV poçtundan e-poçt cavabı göndərildi: karim.li009@pm.me",
+      "details": ""
+    },
+    {
+      "id": "log-1787074546046-bgzh",
+      "timestamp": "2026-08-18T17:35:46.046Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787074425067-uqmi",
       "timestamp": "2026-08-18T17:33:45.067Z",
@@ -19406,6 +19493,15 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787074546046-y1z1",
+      "timestamp": "2026-08-18T17:35:46.046Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787074401061-a9ii",
       "timestamp": "2026-08-18T17:33:21.061Z",

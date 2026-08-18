@@ -17,6 +17,53 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 const PORT = process.env.PORT || 3000;
 
+// -------------------------------------------------------------
+// SMS GATEWAY CONFIGURATION
+// -------------------------------------------------------------
+const smsConfig = {
+  provider: 'lsim',
+  apiUrl: 'http://sms.lsim.az/api/sendsms',
+  login: 'your_sms_username',
+  password: 'your_sms_password',
+  sender: 'M3_KURSU',
+};
+
+async function sendSMS(phone, text) {
+  console.log(`[SMS SEND ATTEMPT] To: ${phone}, Text: ${text}`);
+  
+  if (!smsConfig.login || smsConfig.login === 'your_sms_username') {
+    console.log(`[SMS SIMULATION MODE] Message successfully logged.`);
+    return { success: true, simulated: true, message: "SMS göndərilməsi simulyasiya edildi (Sazlamalar daxil edilməyib)" };
+  }
+
+  try {
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '994' + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith('50') || cleanPhone.startsWith('51') || cleanPhone.startsWith('55') || cleanPhone.startsWith('70') || cleanPhone.startsWith('77') || cleanPhone.startsWith('99')) {
+      if (cleanPhone.length === 9) {
+        cleanPhone = '994' + cleanPhone;
+      }
+    }
+
+    const response = await axios.get(smsConfig.apiUrl, {
+      params: {
+        login: smsConfig.login,
+        password: smsConfig.password,
+        sender: smsConfig.sender,
+        msisdn: cleanPhone,
+        text: text
+      }
+    });
+
+    console.log("[SMS Gateway Response]:", response.data);
+    return { success: true, response: response.data };
+  } catch (error) {
+    console.error("[SMS Gateway Error]:", error.message);
+    throw new Error("SMS provayderi ilə bağlantı qurulmadı: " + error.message);
+  }
+}
+
 app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -1718,6 +1765,28 @@ app.post('/api/emails/:studentId/reply', upload.array('attachments', 10), async 
         }
       }
     }
+  }
+});
+
+// -------------------------------------------------------------
+// SMS NOTIFICATION API
+// -------------------------------------------------------------
+app.post('/api/sms/send', async (req, res) => {
+  const { studentId, phone, text, operator } = req.body;
+  if (!phone || !text) {
+    return res.status(400).json({ success: false, message: "Telefon nömrəsi və mətn daxil edilməlidir!" });
+  }
+
+  try {
+    const student = db.students.find(s => s.id === studentId);
+    const studentName = student ? `${student.name} ${student.surname}` : "Şagird";
+
+    const result = await sendSMS(phone, text);
+    addActivityLog(operator || "Sistem", `${studentName} üçün valideynə SMS göndərildi -> Nömrə: ${phone}`);
+    res.json({ success: true, message: "SMS uğurla göndərildi!", details: result });
+  } catch (err) {
+    console.error("SMS Send Error:", err);
+    res.status(500).json({ success: false, message: "SMS göndərilərkən xəta baş verdi: " + err.message });
   }
 });
 

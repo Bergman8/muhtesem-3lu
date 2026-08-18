@@ -534,11 +534,11 @@ function openStudentQuickView(id) {
     customList.innerHTML = `<div style="font-size:13px; color:var(--text-dim); font-style:italic; margin-top:12px;">Əlavə məlumat daxil edilməyib.</div>`;
   }
 
-  const waBtn = document.getElementById('quick-view-wa-btn');
-  if (waBtn) {
-    waBtn.onclick = () => {
+  const smsBtn = document.getElementById('quick-view-sms-btn');
+  if (smsBtn) {
+    smsBtn.onclick = () => {
       closeModal('view-student-quick-modal');
-      openWhatsAppContactModal(s.id);
+      openSMSModal(s.id);
     };
   }
 
@@ -1235,8 +1235,8 @@ function renderVerificationView() {
           <span class="badge-status green" style="margin-top: 4px;">Yoxlanıldı</span>
         </div>
         <div class="card-actions" style="margin-top: 8px;">
-          <button class="btn-card-action" style="background:var(--green); border-color:transparent; color:white; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; font-weight:600;" onclick="openWhatsAppModal('${item.studentId || ''}', '${item.universityName.replace(/'/g, "\\'")}')">
-            <i class="fa-brands fa-whatsapp" style="font-size:14px;"></i> WhatsApp Bildirişi
+          <button class="btn-card-action" style="background:var(--primary); border-color:transparent; color:white; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; font-weight:600;" onclick="openSMSModal('${item.studentId || ''}', '${item.universityName.replace(/'/g, "\\\'")}')">
+            <i class="fa-solid fa-comment-sms" style="font-size:14px;"></i> SMS Bildirişi
           </button>
         </div>
       </div>
@@ -2932,91 +2932,108 @@ function playNotificationSound() {
 }
 
 // -------------------------------------------------------------
-// 9. WHATSAPP ACCEPTANCE MESSAGE SENDER
+// 9. SMS ACCEPTANCE MESSAGE SENDER
 // -------------------------------------------------------------
-let selectedStudentForWa = null;
+let selectedStudentForSms = null;
 
-function openWhatsAppModal(studentId, uniName = "") {
+function openSMSModal(studentId, uniName = "") {
   const std = allStudents.find(s => s.id === studentId);
   if (!std) return;
 
-  selectedStudentForWa = std;
+  selectedStudentForSms = std;
 
-  document.getElementById('wa-student-name').value = `${std.name} ${std.surname}`;
-  document.getElementById('wa-university-name').value = uniName || "";
+  document.getElementById('sms-student-name').value = `${std.name} ${std.surname}`;
+  document.getElementById('sms-university-name').value = uniName || "";
+  document.getElementById('sms-status-select').value = "Qəbul";
 
-  // Attempt to find parent name and phone in custom fields
-  let parentName = "";
-  let phone = "";
+  let parentName = std.parentName || "";
+  let phone = std.parentPhone || "";
 
-  if (std.customFields && typeof std.customFields === 'object') {
-    Object.entries(std.customFields).forEach(([key, val]) => {
-      const kNorm = key.toLowerCase();
-      // Look for parent keywords
-      if (kNorm.includes('ata') || kNorm.includes('ana') || kNorm.includes('valideyn') || kNorm.includes('parent') || kNorm.includes('bağı') || kNorm.includes('bagi')) {
-        parentName = val;
-      }
-      // Look for phone keywords
-      if (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel')) {
-        phone = val;
-      }
-    });
-  }
-
-  document.getElementById('wa-parent-name').value = parentName;
-  document.getElementById('wa-parent-phone').value = phone;
-
-  // Add inputs listeners to dynamically update message preview
-  const updatePreview = () => {
-    const pName = document.getElementById('wa-parent-name').value.trim() || "[Valideyn]";
-    const sName = `${std.name} ${std.surname}`;
-    const uName = document.getElementById('wa-university-name').value.trim() || "[Universitet]";
-    
-    const text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} qəbul müraciəti uğurla tamamlanmışdır.\n\nTəbrik edir, uğurlar arzulayırıq! 🎉\n\nHörmətlə, Muhteşem 3lü Kursu.`;
-    document.getElementById('wa-message-preview').value = text;
-  };
-
-  document.getElementById('wa-parent-name').oninput = updatePreview;
-  document.getElementById('wa-university-name').oninput = updatePreview;
-  
-  updatePreview();
-  openModal('whatsapp-modal');
-}
-
-function handleSendWhatsApp(e) {
-  e.preventDefault();
-  const phoneRaw = document.getElementById('wa-parent-phone').value.trim();
-  const text = document.getElementById('wa-message-preview').value;
-
-  // Clean phone number (remove +, spaces, leading zeros etc.)
-  let phoneClean = phoneRaw.replace(/[^0-9]/g, '');
-  
-  // Clean logic:
-  if (phoneClean.startsWith('0')) {
-    phoneClean = '994' + phoneClean.substring(1);
-  } else if (phoneClean.startsWith('50') || phoneClean.startsWith('51') || phoneClean.startsWith('55') || phoneClean.startsWith('70') || phoneClean.startsWith('77') || phoneClean.startsWith('99')) {
-    if (phoneClean.length === 9) {
-      phoneClean = '994' + phoneClean;
+  if (!parentName || !phone) {
+    if (std.customFields && typeof std.customFields === 'object') {
+      Object.entries(std.customFields).forEach(([key, val]) => {
+        const kNorm = key.toLowerCase();
+        if (!parentName && (kNorm.includes('ata') || kNorm.includes('ana') || kNorm.includes('valideyn') || kNorm.includes('parent') || kNorm.includes('bağı') || kNorm.includes('bagi'))) {
+          parentName = val;
+        }
+        if (!phone && (kNorm.includes('telefon') || kNorm.includes('nomre') || kNorm.includes('nömrə') || kNorm.includes('mobil') || kNorm.includes('phone') || kNorm.includes('tel'))) {
+          phone = val;
+        }
+      });
     }
   }
 
-  const encodedText = encodeURIComponent(text);
-  const waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`;
+  document.getElementById('sms-parent-name').value = parentName;
+  document.getElementById('sms-parent-phone').value = phone;
 
-  // Log activity
-  if (currentUser) {
-    fetch('/api/activity', {
+  document.getElementById('sms-parent-name').oninput = updateSmsPreview;
+  document.getElementById('sms-university-name').oninput = updateSmsPreview;
+  
+  updateSmsPreview();
+  openModal('sms-modal');
+}
+
+function updateSmsPreview() {
+  if (!selectedStudentForSms) return;
+  const pName = document.getElementById('sms-parent-name').value.trim() || "[Valideyn]";
+  const sName = `${selectedStudentForSms.name} ${selectedStudentForSms.surname}`;
+  const uName = document.getElementById('sms-university-name').value.trim() || "[Universitet]";
+  const status = document.getElementById('sms-status-select').value;
+  
+  let text = "";
+  if (status === 'Qəbul') {
+    text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} qəbul müraciəti uğurla tamamlanmış və QƏBUL gəlmişdir! Təbrik edirik! 🎉\n\nHörmətlə, Muhteşem 3lü Kursu.`;
+  } else {
+    text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} müraciətinə təəssüf ki, RET gəlmişdir.\n\nDigər müraciətlərimizi yoxlamağa devam edirik.\n\nHörmətlə, Muhteşem 3lü Kursu.`;
+  }
+
+  document.getElementById('sms-message-preview').value = text;
+}
+
+async function handleSendSMS(e) {
+  e.preventDefault();
+  if (!selectedStudentForSms) return;
+
+  const phoneRaw = document.getElementById('sms-parent-phone').value.trim();
+  const text = document.getElementById('sms-message-preview').value;
+
+  if (!phoneRaw || !text) {
+    alert("Nömrə və mətn doldurulmalıdır!");
+    return;
+  }
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHtml = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Göndərilir...`;
+
+  try {
+    const res = await fetch('/api/sms/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        operator: currentUser.name,
-        message: `${selectedStudentForWa.name} ${selectedStudentForWa.surname} üçün valideynə WhatsApp qəbul bildirişi göndərildi.`
+        studentId: selectedStudentForSms.id,
+        phone: phoneRaw,
+        text: text,
+        operator: currentUser ? currentUser.name : "Sistem"
       })
-    }).catch(() => {});
-  }
+    });
 
-  window.open(waUrl, '_blank');
-  closeModal('whatsapp-modal');
+    const data = await res.json();
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+
+    if (data.success) {
+      alert("SMS uğurla göndərildi!");
+      closeModal('sms-modal');
+    } else {
+      alert("Xəta baş verdi: " + data.message);
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+    alert("SMS göndərilərkən şəbəkə xətası baş verdi: " + err.message);
+  }
 }
 
 // -------------------------------------------------------------
@@ -3182,7 +3199,7 @@ async function setApplicationResult(appId, result) {
       await loadAllData();
       renderUniversitiesView();
 
-      // Attempt to send automatic WhatsApp message to the parent
+      // Attempt to send automatic SMS message to the parent
       const std = allStudents.find(s => s.id === appItem.studentId);
       if (std && std.parentPhone) {
         const pName = std.parentName || "[Valideyn]";
@@ -3196,21 +3213,29 @@ async function setApplicationResult(appId, result) {
           text = `Salam, ${pName}.\n\nŞagirdimiz ${sName}-ın ${uName} müraciətinə təəssüf ki, RET gəlmişdir.\n\nDigər müraciətlərimizi yoxlamağa devam edirik.\n\nHörmətlə, Muhteşem 3lü Kursu.`;
         }
 
-        // Clean phone number
-        let phoneClean = std.parentPhone.replace(/[^0-9]/g, '');
-        if (phoneClean.startsWith('0')) {
-          phoneClean = '994' + phoneClean.substring(1);
-        } else if (phoneClean.startsWith('50') || phoneClean.startsWith('51') || phoneClean.startsWith('55') || phoneClean.startsWith('70') || phoneClean.startsWith('77') || phoneClean.startsWith('99')) {
-          if (phoneClean.length === 9) {
-            phoneClean = '994' + phoneClean;
+        fetch('/api/sms/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId: std.id,
+            phone: std.parentPhone,
+            text: text,
+            operator: currentUser ? currentUser.name : "Sistem"
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log("Automatic status SMS sent successfully to:", std.parentPhone);
+          } else {
+            console.warn("Failed to send automatic status SMS:", data.message);
           }
-        }
-
-        const encodedText = encodeURIComponent(text);
-        const waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`;
-        window.open(waUrl, '_blank');
+        })
+        .catch(err => {
+          console.error("Error sending automatic status SMS:", err);
+        });
       } else {
-        alert("WhatsApp nömrəsi tapılmadığı üçün bildiriş göndərilmədi. Zəhmət olmasa, əvvəlcə şagird siyahısından nömrəni daxil edin.");
+        alert("Valideyn nömrəsi tapılmadığı üçün SMS bildirişi göndərilmədi. Zəhmət olmasa, əvvəlcə şagird siyahısından valideyn məlumatlarını daxil edin.");
       }
     } else {
       alert(data.message);
