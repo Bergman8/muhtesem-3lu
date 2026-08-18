@@ -3354,6 +3354,27 @@
   "sales": [],
   "activityLogs": [
     {
+      "id": "log-1787074425067-uqmi",
+      "timestamp": "2026-08-18T17:33:45.067Z",
+      "user": "Afət xanım",
+      "action": "ADNAN MAMMADOV poçtundan e-poçt cavabı göndərildi: karim.li009@pm.me",
+      "details": ""
+    },
+    {
+      "id": "log-1787074401061-12ie",
+      "timestamp": "2026-08-18T17:33:21.061Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787074260346-j00c",
+      "timestamp": "2026-08-18T17:31:00.346Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
       "id": "log-1787073929049-ajx6",
       "timestamp": "2026-08-18T17:25:29.049Z",
       "user": "Afət xanım",
@@ -19385,6 +19406,24 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787074401061-a9ii",
+      "timestamp": "2026-08-18T17:33:21.061Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787074260346-6lzc",
+      "timestamp": "2026-08-18T17:31:00.346Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787073333820-t7j8",
       "timestamp": "2026-08-18T17:15:33.820Z",

@@ -3519,17 +3519,24 @@ async function handleSendEmailReply(e) {
     toAddress = match[1];
   }
 
+  const formData = new FormData();
+  formData.append('to', toAddress);
+  formData.append('subject', msg.subject);
+  formData.append('body', replyText);
+  formData.append('messageId', originalMessageId);
+  formData.append('operator', currentUser.name);
+
+  const fileInput = document.getElementById('email-reply-attachments');
+  if (fileInput && fileInput.files.length > 0) {
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append('attachments', fileInput.files[i]);
+    }
+  }
+
   try {
     const res = await fetch(`/api/emails/${selectedEmailStudentId}/reply`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: toAddress,
-        subject: msg.subject,
-        body: replyText,
-        messageId: originalMessageId,
-        operator: currentUser.name
-      })
+      body: formData
     });
 
     const data = await res.json();
@@ -3539,6 +3546,9 @@ async function handleSendEmailReply(e) {
     if (data.success) {
       alert("E-poçt uğurla cavablandırıldı!");
       document.getElementById('email-reply-text').value = '';
+      if (fileInput) fileInput.value = '';
+      const listContainer = document.getElementById('email-reply-attachment-list');
+      if (listContainer) listContainer.innerHTML = '';
     } else {
       alert(data.message);
     }
@@ -3546,6 +3556,25 @@ async function handleSendEmailReply(e) {
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalBtnHtml;
     alert("Məktub göndərilərkən xəta yarandı: " + err.message);
+  }
+}
+
+function handleEmailAttachmentChange() {
+  const fileInput = document.getElementById('email-reply-attachments');
+  const listContainer = document.getElementById('email-reply-attachment-list');
+  if (!fileInput || !listContainer) return;
+
+  listContainer.innerHTML = '';
+  if (fileInput.files.length === 0) return;
+
+  for (let i = 0; i < fileInput.files.length; i++) {
+    const file = fileInput.files[i];
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    listContainer.innerHTML += `
+      <span style="background:rgba(255,255,255,0.08); border:1px solid var(--border); border-radius:4px; padding:2px 8px; display:inline-flex; align-items:center; gap:4px; font-size:11px;">
+        <i class="fa-solid fa-file-shield" style="color:var(--primary);"></i> ${escapeHtml(file.name)} (${sizeMb} MB)
+      </span>
+    `;
   }
 }
 

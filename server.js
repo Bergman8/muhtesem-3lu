@@ -1593,19 +1593,31 @@ app.get('/api/emails/:studentId', async (req, res) => {
   }
 });
 
-app.post('/api/emails/:studentId/reply', async (req, res) => {
+app.post('/api/emails/:studentId/reply', upload.array('attachments', 10), async (req, res) => {
   const student = db.students.find(s => s.id === req.params.studentId);
   if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
 
   if (!student.email || !student.emailPassword) {
+    // Cleanup temp attachments if any
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        try { fs.unlinkSync(file.path); } catch (e) {}
+      }
+    }
     return res.status(400).json({
       success: false,
       message: "Bu şagird üçün email və ya Gmail Uygulama Şifrəsi (App Password) daxil edilməyib!"
     });
   }
 
-  const { to, subject, body, messageId } = req.body;
+  const { to, subject, body, messageId, operator } = req.body;
   if (!to || !subject || !body) {
+    // Cleanup temp attachments if any
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        try { fs.unlinkSync(file.path); } catch (e) {}
+      }
+    }
     return res.status(400).json({ success: false, message: "Kimə, Mövzu və Mətn sahələri doldurulmalıdır!" });
   }
 
@@ -1620,11 +1632,22 @@ app.post('/api/emails/:studentId/reply', async (req, res) => {
       }
     });
 
+    const attachments = [];
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        attachments.push({
+          filename: file.originalname,
+          path: file.path
+        });
+      }
+    }
+
     const mailOptions = {
       from: student.email,
       to,
       subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
       text: body,
+      attachments,
       headers: {}
     };
 
@@ -1634,11 +1657,22 @@ app.post('/api/emails/:studentId/reply', async (req, res) => {
     }
 
     await transporter.sendMail(mailOptions);
-    addActivityLog(req.body.operator || "Sistem", `${student.name} ${student.surname} poçtundan e-poçt cavabı göndərildi: ${to}`);
+    addActivityLog(operator || "Sistem", `${student.name} ${student.surname} poçtundan e-poçt cavabı göndərildi: ${to}`);
     res.json({ success: true, message: "E-poçt cavabı uğurla göndərildi!" });
   } catch (err) {
     console.error("SMTP Send Error:", err);
     res.status(500).json({ success: false, message: "E-poçt göndərilərkən xəta baş verdi: " + err.message });
+  } finally {
+    // Cleanup temp attachments after sending finishes
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (e) {
+          console.warn("Could not delete attachment temp file:", e.message);
+        }
+      }
+    }
   }
 });
 
