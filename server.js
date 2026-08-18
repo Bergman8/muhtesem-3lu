@@ -8,8 +8,10 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const http = require('http');
 const { Server } = require('socket.io');
+const { ImapFlow } = require('imapflow');
+const { simpleParser } = require('mailparser');
+const nodemailer = require('nodemailer');
 const { initDB, saveDB, UPLOADS_DIR } = require('./dbEngine');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
@@ -336,7 +338,7 @@ app.get('/api/students', (req, res) => {
 });
 
 app.post('/api/students', (req, res) => {
-  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields } = req.body;
+  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, emailPassword } = req.body;
   if (!name || !passportNo) {
     return res.status(400).json({ success: false, message: "Ad və Pasport No mütləqdir." });
   }
@@ -347,6 +349,7 @@ app.post('/api/students', (req, res) => {
     surname: surname || "",
     passportNo,
     email: email || "",
+    emailPassword: emailPassword || "",
     birthDate: birthDate || "",
     passIssueDate: passIssueDate || "",
     passExpiryDate: passExpiryDate || "",
@@ -364,7 +367,7 @@ app.put('/api/students/:id', (req, res) => {
   const student = db.students.find(s => s.id === req.params.id);
   if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
 
-  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, parentName, parentPhone } = req.body;
+  const { name, surname, passportNo, email, birthDate, passIssueDate, passExpiryDate, customFields, parentName, parentPhone, emailPassword } = req.body;
   if (name !== undefined) student.name = name;
   if (surname !== undefined) student.surname = surname;
   if (passportNo !== undefined) student.passportNo = passportNo;
@@ -375,6 +378,7 @@ app.put('/api/students/:id', (req, res) => {
   if (customFields !== undefined) student.customFields = customFields;
   if (parentName !== undefined) student.parentName = parentName;
   if (parentPhone !== undefined) student.parentPhone = parentPhone;
+  if (emailPassword !== undefined) student.emailPassword = emailPassword;
 
   addActivityLog(req.body.operator || "Sistem", `Tələbə məlumatları düzəliş edildi: ${student.name} ${student.surname}`);
   saveDB(db);
@@ -1483,6 +1487,212 @@ io.on('connection', (socket) => {
     io.emit('onlineUsers', Object.keys(userSockets).filter(k => userSockets[k].length > 0));
   });
 });
+
+// -------------------------------------------------------------
+// 📨 CENTRAL EMAIL CLIENT API
+// -------------------------------------------------------------
+async function fetchEmails(emailAddress, appPassword) {
+  const client = new ImapFlow({
+    host: 'imap.gmail.com',
+    port: 993,
+    secure: true,
+    auth: {
+      user: emailAddress,
+      pass: appPassword
+    },
+    logger: false
+  });
+
+  await client.connect();
+  let lock = await client.getMailboxLock('INBOX');
+  let messages = [];
+  try {
+    const count = client.mailbox.exists;
+    if (count > 0) {
+      const startRange = Math.max(1, count - 19); // fetch last 20 emails
+      const range = `${startRange}:${count}`;
+
+      for await (let msg of client.fetch(range, { envelope: true, source: true })) {
+        let parsed;
+        try {
+          parsed = await simpleParser(msg.source);
+        } catch (parseErr) {
+          console.error("Error parsing email source:", parseErr);
+          parsed = {
+            subject: msg.envelope.subject || '(Mövzu Yoxdur)',
+            from: msg.envelope.from ? msg.envelope.from[0].name || msg.envelope.from[0].address : '-',
+            to: msg.envelope.to ? msg.envelope.to[0].address : '-',
+            date: msg.envelope.date || new Date(),
+            text: 'Məktubun oxunması zamanı xəta yarandı.',
+            html: 'Məktubun oxunması zamanı xəta yarandı.'
+          };
+        }
+        
+        messages.unshift({
+          id: msg.uid.toString(),
+          uid: msg.uid,
+          messageId: parsed.messageId || msg.envelope.messageId,
+          subject: parsed.subject || msg.envelope.subject || '(Mövzu Yoxdur)',
+          from: parsed.from ? parsed.from.text : (msg.envelope.from ? msg.envelope.from[0].address : '-'),
+          to: parsed.to ? parsed.to.text : (msg.envelope.to ? msg.envelope.to[0].address : '-'),
+          date: parsed.date || msg.envelope.date || new Date(),
+          text: parsed.text || '',
+          html: parsed.html || parsed.textAsHtml || parsed.text || '',
+          unread: !msg.flags.has('\\Seen')
+        });
+      }
+    }
+  } finally {
+    lock.release();
+  }
+  await client.logout();
+  return messages;
+}
+
+app.get('/api/emails/:studentId', async (req, res) => {
+  const student = db.students.find(s => s.id === req.params.studentId);
+  if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
+
+  if (!student.email || !student.emailPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Bu şagird üçün email və ya Gmail Uygulama Şifrəsi (App Password) daxil edilməyib!"
+    });
+  }
+
+  try {
+    const emails = await fetchEmails(student.email, student.emailPassword);
+    res.json({ success: true, emails });
+  } catch (err) {
+    console.error("IMAP Fetch Error:", err);
+    let errMsg = "Gmail bağlantısı qurularkən xəta baş verdi: " + err.message;
+    if (err.message.includes('AUTHENTICATIONFAILED')) {
+      errMsg = "Gmail hesabı ilə bağlantı qurulmadı. Zəhmət olmasa email ünvanını və 16 rəqəmli Uygulama Şifrəsini (App Password) düzgün daxil etdiyinizdən və Gmail sazlamalarında IMAP-ın aktiv olmasından əmin olun.";
+    }
+    res.status(500).json({ success: false, message: errMsg });
+  }
+});
+
+app.post('/api/emails/:studentId/reply', async (req, res) => {
+  const student = db.students.find(s => s.id === req.params.studentId);
+  if (!student) return res.status(404).json({ success: false, message: "Tələbə tapılmadı" });
+
+  if (!student.email || !student.emailPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Bu şagird üçün email və ya Gmail Uygulama Şifrəsi (App Password) daxil edilməyib!"
+    });
+  }
+
+  const { to, subject, body, messageId } = req.body;
+  if (!to || !subject || !body) {
+    return res.status(400).json({ success: false, message: "Kimə, Mövzu və Mətn sahələri doldurulmalıdır!" });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: student.email,
+        pass: student.emailPassword
+      }
+    });
+
+    const mailOptions = {
+      from: student.email,
+      to,
+      subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
+      text: body,
+      headers: {}
+    };
+
+    if (messageId) {
+      mailOptions.headers['In-Reply-To'] = messageId;
+      mailOptions.headers['References'] = messageId;
+    }
+
+    await transporter.sendMail(mailOptions);
+    addActivityLog(req.body.operator || "Sistem", `${student.name} ${student.surname} poçtundan e-poçt cavabı göndərildi: ${to}`);
+    res.json({ success: true, message: "E-poçt cavabı uğurla göndərildi!" });
+  } catch (err) {
+    console.error("SMTP Send Error:", err);
+    res.status(500).json({ success: false, message: "E-poçt göndərilərkən xəta baş verdi: " + err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// 🔄 ROUND-ROBIN BACKGROUND EMAIL POLLER
+// -------------------------------------------------------------
+const emailCheckersState = {};
+let currentCheckIndex = 0;
+
+async function backgroundEmailPoller() {
+  const studentsToPoll = db.students.filter(s => s.email && s.emailPassword);
+  if (studentsToPoll.length === 0) return;
+
+  if (currentCheckIndex >= studentsToPoll.length) {
+    currentCheckIndex = 0;
+  }
+
+  const std = studentsToPoll[currentCheckIndex];
+  currentCheckIndex++;
+
+  try {
+    const client = new ImapFlow({
+      host: 'imap.gmail.com',
+      port: 993,
+      secure: true,
+      auth: {
+        user: std.email,
+        pass: std.emailPassword
+      },
+      logger: false
+    });
+
+    await client.connect();
+    let lock = await client.getMailboxLock('INBOX');
+    try {
+      const count = client.mailbox.exists;
+      if (count > 0) {
+        const lastMsgGenerator = client.fetch(count.toString(), { envelope: true });
+        for await (let msg of lastMsgGenerator) {
+          const stateKey = std.id;
+          const currentLastUid = msg.uid;
+
+          if (!emailCheckersState[stateKey]) {
+            // Initial load of this inbox state
+            emailCheckersState[stateKey] = { lastUid: currentLastUid };
+          } else if (currentLastUid > emailCheckersState[stateKey].lastUid) {
+            // New message arrived!
+            emailCheckersState[stateKey].lastUid = currentLastUid;
+
+            const fromDisplay = msg.envelope.from ? msg.envelope.from[0].name || msg.envelope.from[0].address : 'Naməlum';
+            const subjectDisplay = msg.envelope.subject || '(Mövzu Yoxdur)';
+
+            // Emit to connected operators
+            io.emit('newEmailNotification', {
+              studentId: std.id,
+              studentName: `${std.name} ${std.surname}`,
+              from: fromDisplay,
+              subject: subjectDisplay
+            });
+          }
+        }
+      }
+    } finally {
+      lock.release();
+    }
+    await client.logout();
+  } catch (err) {
+    // Avoid spamming logs for normal network/auth timeouts
+    console.warn(`[Mail Poller] Background check failed for ${std.email}:`, err.message);
+  }
+}
+
+// Check one mailbox every 20 seconds
+setInterval(backgroundEmailPoller, 20000);
 
 // Launch Express + Socket.IO Server
 server.listen(PORT, () => {

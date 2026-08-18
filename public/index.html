@@ -81,6 +81,10 @@
           <i class="fa-solid fa-clipboard-check"></i> <span>Yoxlanış</span>
           <span id="nav-pending-badge" class="badge-count">0</span>
         </button>
+        <button class="nav-item" data-view="emails-view" onclick="switchView('emails-view')">
+          <i class="fa-solid fa-envelope"></i> <span>Emailler</span>
+          <span id="nav-email-badge" class="badge-count" style="display:none; background:var(--primary);">0</span>
+        </button>
         <button class="nav-item" data-view="files-view" onclick="switchView('files-view')">
           <i class="fa-solid fa-folder-open"></i> <span>Dosyalar</span>
         </button>
@@ -299,6 +303,10 @@
                 <div class="form-group">
                   <label>Email Adresi</label>
                   <input type="email" id="student-detail-email" placeholder="ali@mail.com">
+                </div>
+                <div class="form-group">
+                  <label>Gmail Uygulama Şifresi (App Password)</label>
+                  <input type="password" id="student-detail-email-password" placeholder="16 rəqəmli kod">
                 </div>
                 <div class="form-group">
                   <label>Doğum Tarixi (dd.mm.yyyy)</label>
@@ -521,6 +529,71 @@
             </div>
           </div>
 
+        </section>
+
+        <!-- 5.6 EMAILLER VIEW -->
+        <section id="emails-view" class="view-panel">
+          <div class="emails-dashboard-layout" style="display: flex; height: calc(100vh - 120px); gap: 16px;">
+            <!-- Left panel: Student List -->
+            <div class="email-students-panel" style="width: 250px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; padding: 12px; box-sizing: border-box;">
+              <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 15px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-user-graduate" style="color:var(--primary);"></i> Şagirdlər</h3>
+              <div style="position: relative; margin-bottom: 10px;">
+                <input type="text" id="email-student-search" placeholder="Şagird axtar..." oninput="filterEmailStudents()" style="width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 13px; box-sizing: border-box;">
+              </div>
+              <div id="email-students-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                <!-- Filled via JS -->
+              </div>
+            </div>
+
+            <!-- Middle panel: Email List -->
+            <div class="email-list-panel" style="width: 320px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; padding: 12px; box-sizing: border-box;">
+              <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 15px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-inbox" style="color:var(--primary);"></i> Gələn Məktublar</h3>
+              <div id="email-list-loading" style="display: none; text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px;">
+                <i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> Qoşulur və yüklənir...
+              </div>
+              <div id="email-list-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <div class="empty-state" style="text-align: center; color: var(--text-dim); padding-top: 40px; font-size: 13px;">Şagird seçilməyib və ya məktub yoxdur.</div>
+              </div>
+            </div>
+
+            <!-- Right panel: Email Content & Composer -->
+            <div class="email-detail-panel" style="flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; padding: 16px; box-sizing: border-box; overflow: hidden;">
+              <div id="email-detail-empty" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim);">
+                <i class="fa-solid fa-envelope-open" style="font-size: 40px; margin-bottom: 12px; color: rgba(255,255,255,0.05);"></i>
+                <span>Oxumaq üçün e-poçt seçin</span>
+              </div>
+              
+              <div id="email-detail-content" style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
+                <!-- Header Info -->
+                <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px;">
+                  <h2 id="email-detail-subject" style="margin: 0 0 8px 0; font-size: 18px; color: white;">Mövzu tapılmadı</h2>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim);">
+                    <div>Kimdən: <strong id="email-detail-from" style="color: white;">-</strong></div>
+                    <div id="email-detail-date">-</div>
+                  </div>
+                </div>
+
+                <!-- Body (Iframe for clean rendering of HTML emails) -->
+                <div style="flex: 1; background: white; border-radius: 8px; overflow: hidden; margin-bottom: 12px; min-height: 180px;">
+                  <iframe id="email-detail-iframe" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
+                </div>
+
+                <!-- Reply Area -->
+                <div style="border-top: 1px solid var(--border); padding-top: 12px;">
+                  <h4 style="margin: 0 0 8px 0; font-size: 13px; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-reply"></i> Cavab Yaz</h4>
+                  <form id="email-reply-form" onsubmit="handleSendEmailReply(event)">
+                    <input type="hidden" id="email-reply-msg-id">
+                    <textarea id="email-reply-text" required placeholder="Mesajınızı yazın..." style="width: 100%; min-height: 80px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; margin-bottom: 8px;"></textarea>
+                    <div style="display: flex; justify-content: flex-end;">
+                      <button type="submit" class="btn-primary" style="padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-paper-plane"></i> Göndər
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- 5.5 DOSYALAR VIEW -->

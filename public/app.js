@@ -210,6 +210,7 @@ function switchView(viewId) {
     'calendar-detail-view': 'Təqvim Məlumatları',
     'verification-view': '3 Aşamalı Yoxlanış Paneli',
     'files-view': 'Şagird Sənədləri (Dosyalar)',
+    'emails-view': 'Mərkəzi Gmail E-posta Paneli',
     'sales-view': 'Kitab Satışları Paneli',
     'accounts-view': 'Sistem Hesabları (Hesablar)'
   };
@@ -225,6 +226,7 @@ function switchView(viewId) {
   else if (viewId === 'calendar-view') renderCalendarView();
   else if (viewId === 'verification-view') renderVerificationView();
   else if (viewId === 'files-view') renderFilesView();
+  else if (viewId === 'emails-view') renderEmailsView();
   else if (viewId === 'sales-view') renderSalesView();
   else if (viewId === 'accounts-view') renderAccountsView();
 }
@@ -566,6 +568,7 @@ function openStudentDetailView(id = null) {
     document.getElementById('student-detail-surname').value = "";
     document.getElementById('student-detail-passport').value = "";
     document.getElementById('student-detail-email').value = "";
+    document.getElementById('student-detail-email-password').value = "";
     document.getElementById('student-detail-birth').value = "";
     document.getElementById('student-detail-pass-issue').value = "";
     document.getElementById('student-detail-pass-expiry').value = "";
@@ -582,6 +585,7 @@ function openStudentDetailView(id = null) {
     document.getElementById('student-detail-surname').value = std.surname;
     document.getElementById('student-detail-passport').value = std.passportNo;
     document.getElementById('student-detail-email').value = std.email;
+    document.getElementById('student-detail-email-password').value = std.emailPassword || "";
     document.getElementById('student-detail-birth').value = std.birthDate;
     document.getElementById('student-detail-pass-issue').value = std.passIssueDate;
     document.getElementById('student-detail-pass-expiry').value = std.passExpiryDate;
@@ -642,6 +646,7 @@ async function handleSaveStudentDetailForm(e) {
     surname: document.getElementById('student-detail-surname').value.trim(),
     passportNo: document.getElementById('student-detail-passport').value.trim(),
     email: document.getElementById('student-detail-email').value.trim(),
+    emailPassword: document.getElementById('student-detail-email-password').value.trim(),
     birthDate: document.getElementById('student-detail-birth').value.trim(),
     passIssueDate: document.getElementById('student-detail-pass-issue').value.trim(),
     passExpiryDate: document.getElementById('student-detail-pass-expiry').value.trim(),
@@ -1822,6 +1827,10 @@ function initSocketIO() {
   socket.on('onlineCount', (count) => {
     const badge = document.getElementById('online-count-badge');
     if (badge) badge.textContent = count;
+  });
+
+  socket.on('newEmailNotification', (data) => {
+    showEmailToastNotification(data);
   });
 
   socket.on('disconnect', () => {
@@ -3210,6 +3219,276 @@ async function setApplicationResult(appId, result) {
     alert("Qəbul statusu qeyd edilərkən xəta baş verdi: " + err.message);
   }
 }
+
+// -------------------------------------------------------------
+// 14. CENTRAL EMAIL CLIENT (GMAIL INTEGRATION)
+// -------------------------------------------------------------
+let selectedEmailStudentId = null;
+let selectedEmailMsgId = null;
+let loadedStudentEmails = [];
+
+function renderEmailsView() {
+  const listContainer = document.getElementById('email-students-list');
+  if (!listContainer) return;
+
+  const searchQuery = (document.getElementById('email-student-search').value || '').toLowerCase();
+  
+  // Filter students
+  const filtered = allStudents.filter(s => {
+    const fullName = `${s.name} ${s.surname}`.toLowerCase();
+    const passport = (s.passportNo || '').toLowerCase();
+    return fullName.includes(searchQuery) || passport.includes(searchQuery);
+  });
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-dim); font-size:13px;">Şagird tapılmadı.</div>`;
+    return;
+  }
+
+  listContainer.innerHTML = filtered.map(s => {
+    const isActive = s.id === selectedEmailStudentId;
+    const hasConfig = s.email && s.emailPassword;
+    const configBadge = hasConfig 
+      ? `<span style="font-size:9px; background:rgba(16,185,129,0.15); color:var(--green); padding:1px 4px; border-radius:4px; font-weight:bold;">Gmail OK</span>`
+      : `<span style="font-size:9px; background:rgba(255,255,255,0.05); color:var(--text-dim); padding:1px 4px; border-radius:4px;">Quraşdırılmayıb</span>`;
+
+    return `
+      <button class="email-student-item ${isActive ? 'active' : ''}" onclick="selectEmailStudent('${s.id}')">
+        <div style="font-weight:600; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+          <span>${s.name} ${s.surname}</span>
+          ${configBadge}
+        </div>
+        <span class="std-passport">Pasp: ${s.passportNo || '-'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function filterEmailStudents() {
+  renderEmailsView();
+}
+
+function selectEmailStudent(studentId) {
+  selectedEmailStudentId = studentId;
+  selectedEmailMsgId = null;
+  loadedStudentEmails = [];
+  
+  renderEmailsView();
+
+  // Reset detail pane
+  document.getElementById('email-detail-empty').style.display = 'flex';
+  document.getElementById('email-detail-content').style.display = 'none';
+
+  // Load emails
+  fetchEmailsForStudent(studentId);
+}
+
+async function fetchEmailsForStudent(studentId) {
+  const container = document.getElementById('email-list-container');
+  const loading = document.getElementById('email-list-loading');
+  if (!container || !loading) return;
+
+  container.innerHTML = '';
+  loading.style.display = 'block';
+
+  try {
+    const res = await fetch(`/api/emails/${studentId}`);
+    const data = await res.json();
+    loading.style.display = 'none';
+
+    if (data.success) {
+      loadedStudentEmails = data.emails || [];
+      renderEmailList();
+    } else {
+      container.innerHTML = `
+        <div style="padding:16px; color:var(--red); font-size:12px; line-height:1.4; text-align:center;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+          ${data.message}
+        </div>
+      `;
+    }
+  } catch (err) {
+    loading.style.display = 'none';
+    container.innerHTML = `
+      <div style="padding:16px; color:var(--red); font-size:12px; text-align:center;">
+        Bağlantı xətası baş verdi: ${err.message}
+      </div>
+    `;
+  }
+}
+
+function renderEmailList() {
+  const container = document.getElementById('email-list-container');
+  if (!container) return;
+
+  if (loadedStudentEmails.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="text-align:center; color:var(--text-dim); padding-top:40px; font-size:13px;">Gelen kutusu boşdur.</div>`;
+    return;
+  }
+
+  container.innerHTML = loadedStudentEmails.map(msg => {
+    const isActive = msg.id === selectedEmailMsgId;
+    const isUnread = msg.unread;
+    const dateFormatted = new Date(msg.date).toLocaleDateString('az-AZ', { hour: '2-digit', minute: '2-digit' });
+
+    const snippet = msg.text ? msg.text.substring(0, 80) : '';
+
+    return `
+      <div class="email-msg-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}" onclick="openEmailDetail('${msg.id}')">
+        <span class="email-msg-date">${dateFormatted}</span>
+        <div class="email-msg-subject">${escapeHtml(msg.subject)}</div>
+        <div class="email-msg-from">Kimdən: ${escapeHtml(msg.from)}</div>
+        <div class="email-msg-snippet">${escapeHtml(snippet)}...</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openEmailDetail(msgId) {
+  selectedEmailMsgId = msgId;
+  renderEmailList(); // refresh active state visually
+
+  const msg = loadedStudentEmails.find(m => m.id === msgId);
+  if (!msg) return;
+
+  // Mark Seen locally
+  msg.unread = false;
+  renderEmailList();
+
+  document.getElementById('email-detail-empty').style.display = 'none';
+  document.getElementById('email-detail-content').style.display = 'flex';
+
+  document.getElementById('email-detail-subject').textContent = msg.subject;
+  document.getElementById('email-detail-from').textContent = msg.from;
+  document.getElementById('email-detail-date').textContent = new Date(msg.date).toLocaleString('az-AZ');
+
+  // Load content into iframe safely to prevent style leaks
+  const iframe = document.getElementById('email-detail-iframe');
+  if (iframe) {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    const wrappedHtml = `
+      <html>
+        <head>
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+              font-size: 14px; 
+              line-height: 1.6; 
+              color: #333333; 
+              padding: 16px; 
+              margin: 0;
+            }
+            img { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>${msg.html}</body>
+      </html>
+    `;
+    doc.write(wrappedHtml);
+    doc.close();
+  }
+
+  // Threading messageId setup
+  document.getElementById('email-reply-msg-id').value = msg.messageId || '';
+  document.getElementById('email-reply-text').value = '';
+}
+
+async function handleSendEmailReply(e) {
+  e.preventDefault();
+  if (!selectedEmailStudentId || !selectedEmailMsgId) return;
+
+  const msg = loadedStudentEmails.find(m => m.id === selectedEmailMsgId);
+  if (!msg) return;
+
+  const replyText = document.getElementById('email-reply-text').value.trim();
+  const originalMessageId = document.getElementById('email-reply-msg-id').value;
+
+  if (!replyText) return;
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHtml = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Göndərilir...`;
+
+  let toAddress = msg.from;
+  const match = msg.from.match(/<([^>]+)>/);
+  if (match && match[1]) {
+    toAddress = match[1];
+  }
+
+  try {
+    const res = await fetch(`/api/emails/${selectedEmailStudentId}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: toAddress,
+        subject: msg.subject,
+        body: replyText,
+        messageId: originalMessageId,
+        operator: currentUser.name
+      })
+    });
+
+    const data = await res.json();
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+
+    if (data.success) {
+      alert("E-poçt uğurla cavablandırıldı!");
+      document.getElementById('email-reply-text').value = '';
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+    alert("Məktub göndərilərkən xəta yarandı: " + err.message);
+  }
+}
+
+function showEmailToastNotification(data) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  playNotificationSound();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-card';
+  
+  toast.onclick = () => {
+    switchView('emails-view');
+    selectEmailStudent(data.studentId);
+    toast.remove();
+  };
+
+  toast.innerHTML = `
+    <div class="toast-icon" style="background:rgba(99,102,241,0.15); color:var(--primary); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+      <i class="fa-solid fa-envelope"></i>
+    </div>
+    <div class="toast-content" style="flex:1;">
+      <div class="toast-title" style="font-weight:700; font-size:13px;">${data.studentName} - Yeni E-poçt</div>
+      <div class="toast-body" style="font-size:12px; color:var(--text-dim); margin-top:2px;">Kimdən: ${data.from}<br>${data.subject}</div>
+    </div>
+    <button type="button" class="toast-close" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; margin-top:-4px;" onclick="event.stopPropagation(); this.parentElement.remove()">&times;</button>
+  `;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    if (toast && toast.parentElement) toast.remove();
+  }, 8000);
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 
 
 

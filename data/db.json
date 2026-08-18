@@ -3353,6 +3353,41 @@
   "sales": [],
   "activityLogs": [
     {
+      "id": "log-1786723750639-ve8o",
+      "timestamp": "2026-08-14T16:09:10.639Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.130.69 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1786723737721-3zwm",
+      "timestamp": "2026-08-14T16:08:57.721Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.130.69 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603567052-lsn9",
+      "timestamp": "2026-08-01T16:59:27.052Z",
+      "user": "Kərim",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.133.248 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603401671-whym",
+      "timestamp": "2026-08-01T16:56:41.671Z",
+      "user": "Kərim",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.133.248 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603385088-oav5",
+      "timestamp": "2026-08-01T16:56:25.088Z",
+      "user": "Kərim",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.133.248 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
       "id": "log-1785602815030-uiw6",
       "timestamp": "2026-08-01T16:46:55.030Z",
       "user": "Qəşəm",
@@ -19328,6 +19363,51 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1786723750639-3wns",
+      "timestamp": "2026-08-14T16:09:10.639Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.130.69",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1786723737721-ft6f",
+      "timestamp": "2026-08-14T16:08:57.721Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.130.69",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603567052-s586",
+      "timestamp": "2026-08-01T16:59:27.052Z",
+      "username": "kerim",
+      "name": "Kərim",
+      "role": "operator",
+      "ip": "212.47.133.248",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603401671-2ku4",
+      "timestamp": "2026-08-01T16:56:41.671Z",
+      "username": "kerim",
+      "name": "Kərim",
+      "role": "operator",
+      "ip": "212.47.133.248",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1785603385088-p1ma",
+      "timestamp": "2026-08-01T16:56:25.088Z",
+      "username": "kerim",
+      "name": "Kərim",
+      "role": "operator",
+      "ip": "212.47.133.248",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1785602815030-4vv0",
       "timestamp": "2026-08-01T16:46:55.030Z",
