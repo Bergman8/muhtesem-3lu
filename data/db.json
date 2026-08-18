@@ -3414,6 +3414,20 @@
   "sales": [],
   "activityLogs": [
     {
+      "id": "log-1787075750115-gurp",
+      "timestamp": "2026-08-18T17:55:50.115Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787075729886-22k6",
+      "timestamp": "2026-08-18T17:55:29.886Z",
+      "user": "Afət xanım",
+      "action": "Sistemə giriş etdi",
+      "details": "IP: 212.47.140.102 | Cihaz: Masaüstü (Desktop) - Chrome"
+    },
+    {
       "id": "log-1787075493195-bg65",
       "timestamp": "2026-08-18T17:51:33.195Z",
       "user": "Afət xanım",
@@ -19557,6 +19571,24 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787075750115-yqru",
+      "timestamp": "2026-08-18T17:55:50.115Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
+    {
+      "id": "log-1787075729885-p25o",
+      "timestamp": "2026-08-18T17:55:29.885Z",
+      "username": "afet",
+      "name": "Afət xanım",
+      "role": "rahbar",
+      "ip": "212.47.140.102",
+      "device": "Masaüstü (Desktop) - Chrome"
+    },
     {
       "id": "log-1787075493195-14ce",
       "timestamp": "2026-08-18T17:51:33.195Z",
