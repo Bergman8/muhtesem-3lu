@@ -1491,6 +1491,50 @@ io.on('connection', (socket) => {
 // -------------------------------------------------------------
 // 📨 CENTRAL EMAIL CLIENT API
 // -------------------------------------------------------------
+async function resolveMailboxPath(client, requestedFolder) {
+  if (requestedFolder === 'INBOX') return 'INBOX';
+
+  try {
+    const list = await client.list();
+    let targetAttr = '';
+    let fallbackKeywords = [];
+
+    if (requestedFolder === '[Gmail]/All Mail') {
+      targetAttr = '\\All';
+      fallbackKeywords = ['all mail', 'tüm postalar', 'bütün məktublar', 'allmail'];
+    } else if (requestedFolder === '[Gmail]/Spam') {
+      targetAttr = '\\Junk';
+      fallbackKeywords = ['spam', 'junk', 'gereksiz'];
+    } else if (requestedFolder === '[Gmail]/Trash') {
+      targetAttr = '\\Trash';
+      fallbackKeywords = ['trash', 'bin', 'çöp kutusu', 'zibil qutusu', 'deleted'];
+    }
+
+    if (targetAttr) {
+      for (let box of list) {
+        if (box.specialUse === targetAttr) {
+          return box.path;
+        }
+      }
+      for (let box of list) {
+        if (box.flags && (box.flags.has(targetAttr) || box.flags.has(targetAttr.toLowerCase()))) {
+          return box.path;
+        }
+      }
+      for (let box of list) {
+        const pathLower = box.path.toLowerCase();
+        if (fallbackKeywords.some(kw => pathLower.includes(kw))) {
+          return box.path;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Error resolving mailbox path, using requested default:", err.message);
+  }
+
+  return requestedFolder;
+}
+
 async function fetchEmails(emailAddress, appPassword, folderName = 'INBOX', page = 1, limit = 15) {
   const client = new ImapFlow({
     host: 'imap.gmail.com',
@@ -1508,7 +1552,8 @@ async function fetchEmails(emailAddress, appPassword, folderName = 'INBOX', page
   });
 
   await client.connect();
-  let lock = await client.getMailboxLock(folderName);
+  const resolvedFolder = await resolveMailboxPath(client, folderName);
+  let lock = await client.getMailboxLock(resolvedFolder);
   let messages = [];
   let totalCount = 0;
   try {
